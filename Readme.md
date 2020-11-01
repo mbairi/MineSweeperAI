@@ -15,7 +15,9 @@ I've implemented two neural nets, one dense and another convolutional.<br/>
 Epsilon decay is linear from 0.999 to 0.01 with a decay of 0.001 for each batch of 4096 decisions.
 
 Both gave nearly the same results.<br/>
-It took about 20 mins to train on 1200x4096 decisions.
+It took about 20 mins to train on 1200x4096 decisions.<br/>
+
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Logs/Reward_Graph.png" width="600"><br/>
 
 # Training Visualized:
 <img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/learning.gif" width="600"><br/>
