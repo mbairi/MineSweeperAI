@@ -1,0 +1,37 @@
+TOTALK
+
+Writing the basic game:
+    basic grid
+    basic bombs in random locations:
+        PLANTED some mines ( plant image )
+    solution maker:
+        Solution ( chemistry image )
+    0 unfogger
+    >0 single unfog
+
+Optimizing:
+    python slow c++ good
+    numpy in c++ = numpy good
+    rewrote in numpy
+    tried multiprocess and failed
+    was wasting too much time and wanted rough model to work
+
+Basic Strategy:
+    Q learning:
+        state, action, reward
+        try to calculate number of possible states and why its not feasible
+
+    Enter Neural Networks:
+        neural network doesnt have to remember all the states
+        Tries to predict Q value for each action
+        picks max of each action
+        problem now is if max each time, the game doesn't explore random actions
+
+        DNN: flattens
+        CNN: Spatially checks vals
+    
+    
+    
+
+Yoinking 2 stackoverflow for pygame without knowing what was happening
+Copying color palette from colorhunt
