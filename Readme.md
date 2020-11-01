@@ -1,7 +1,3 @@
-# Final Result:
-<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/learning.gif" width="600"><br/>
-white: zeros<br/>
-black: unexplored<br/>
 # Details:
 ## Game
 Created the minesweeper game from scratch using python and numpy. Can take upto 7000 decisions per second when the renderer is off. the game component supports creation of any grid size with any number of bombs.
@@ -20,3 +16,8 @@ Epsilon decay is linear from 0.999 to 0.01 with a decay of 0.001 for each batch 
 
 Both gave nearly the same results.<br/>
 It took about 20 mins to train on 1200x4096 decisions.
+
+# Training Visualized:
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/learning.gif" width="600"><br/>
+white: zeros<br/>
+black: unexplored<br/>
