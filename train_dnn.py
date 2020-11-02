@@ -18,7 +18,7 @@ class Driver():
         self.bomb_no = bomb_no
         self.box_count = width*height
         self.env = MineSweeper(self.width,self.height,self.bomb_no)
-        self.dqn = DQN(self.box_count,128)
+        self.dqn = DQN(self.box_count,256)
         self.buffer = Buffer(100000)
         self.gamma = 0.99
         self.optimizer = torch.optim.Adam(self.dqn.parameters())
@@ -95,7 +95,7 @@ def main():
             batch_no+=1
             print("Batch: "+str(batch_no)+"\tAvg Reward: "+str(running_reward/4096)+"\tEpsilon: "+str(driver.dqn.epsilon))
             log.write(str(running_reward/4096)+"\n")
-            driver.dqn.epsilon = max(0.01,driver.dqn.epsilon-driver.epsilon_decay)
+            driver.dqn.epsilon = max(0.1,driver.dqn.epsilon-driver.epsilon_decay)
             running_reward=0
             count=0
     

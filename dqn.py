@@ -23,8 +23,8 @@ class DQN(nn.Module):
         )
         
 
-    def forward(self,x):
-        return self.model(x)
+    def forward(self,x,mask):
+        x=self.model(x)
     
     def act(self,state):
         bruh = random.random()

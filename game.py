@@ -24,7 +24,7 @@ class MineSweeper():
         self.fog = np.zeros((self.grid_width,self.grid_height),dtype=np.int)
         self.state = np.zeros((self.grid_width,self.grid_height),dtype=np.int)
     
-        self.bomb_locs = np.random.randint(self.box_count, size=self.bomb_no)
+        self.bomb_locs = np.random.choice(range(self.box_count), self.bomb_no, replace=False)
 
         ### Plants the bombs and creates the solutions
         self.plant_bombs()
@@ -77,17 +77,18 @@ class MineSweeper():
                         if(self.grid[r][c]==0 and self.fog[r][c]==0):
                             queue.append((r,c))
                         self.fog[r][c]=1
-                        self.uncovered_count+=1
+                        
 
     def choose(self,i,j):
 
         ### If selects something already selected/ uncovered
         if(self.fog[i][j]==1):
-            return self.state,False,-0.3
+            return self.state,False,-0.01
 
         ### If selected tile has a 0 under it
         if(self.grid[i][j]==0):
             self.unfog_zeros(i,j)
+            self.uncovered_count=  np.count_nonzero(self.fog)
             self.update_state()
             if(self.uncovered_count==self.box_count-self.bomb_no):
                 return self.state,True,1
@@ -95,6 +96,8 @@ class MineSweeper():
 
         ### If selected tile has something > 0 under it
         elif(self.grid[i][j]>0):
+            self.fog[i][j]=1
+            self.uncovered_count=np.count_nonzero
             self.update_state()
             if(self.uncovered_count==self.box_count-self.bomb_no):
                 return self.state,True,1
