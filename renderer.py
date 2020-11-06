@@ -20,9 +20,10 @@ class Render():
                     (0,155,181),
                     (0,150,181)
                     ]
-
-        self.WINDOW_HEIGHT = 300
-        self.WINDOW_WIDTH = 300
+        h,w = state.shape
+        self.blockSize = 30
+        self.WINDOW_HEIGHT = h*self.blockSize
+        self.WINDOW_WIDTH = w*self.blockSize
         self.state = state
         self.init()
         
@@ -33,14 +34,13 @@ class Render():
         self.SCREEN = pygame.display.set_mode((self.WINDOW_HEIGHT, self.WINDOW_WIDTH))
         self.CLOCK = pygame.time.Clock()
         self.SCREEN.fill(self.GRAY_SHADES[1])
-        #while True:
     
     def draw(self):
         self.drawGrid()
         pygame.display.update()
     
     def bugfix(self):
-        pygame.event.get()
+        return pygame.event.get()
 
     def addText(self,no,x,y,color):
         self.SCREEN.blit(self.font.render(str(no), True, color), (x, y))
@@ -48,17 +48,17 @@ class Render():
 
 
     def drawGrid(self):
-        blockSize = 30 
+        
         j=0
-        for column in range(0, self.WINDOW_WIDTH, blockSize):
+        for column in range(0, self.WINDOW_WIDTH, self.blockSize):
             i=0
-            for row in range(0, self.WINDOW_HEIGHT, blockSize):
+            for row in range(0, self.WINDOW_HEIGHT, self.blockSize):
                 if(self.state[i][j]==-1):
-                    pygame.draw.rect(self.SCREEN, self.GRAY_SHADES[0], [column,row,blockSize,blockSize])
+                    pygame.draw.rect(self.SCREEN, self.GRAY_SHADES[0], [column,row,self.blockSize,self.blockSize])
                 if(self.state[i][j]==0):
-                    pygame.draw.rect(self.SCREEN, self.GRAY_SHADES[2], [column,row,blockSize,blockSize])
+                    pygame.draw.rect(self.SCREEN, self.GRAY_SHADES[2], [column,row,self.blockSize,self.blockSize])
                 elif(self.state[i][j]>0):
-                    pygame.draw.rect(self.SCREEN, self.BLUE[0], [column,row,blockSize,blockSize])
+                    pygame.draw.rect(self.SCREEN, self.BLUE[0], [column,row,self.blockSize,self.blockSize])
                     self.addText(self.state[i][j],column+10,row+7,self.GRAY_SHADES[2])
                 i+=1
             j+=1
