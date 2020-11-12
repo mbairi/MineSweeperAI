@@ -11,6 +11,7 @@ class MineSweeper():
         ### fog contains the things that are visible to the player/ system :        [   0 = not visible,    1 = visible ]
         ### grid_width, grid_height, bomb_no are self explanatory
         ### bomb_locs contains *flattened* locations of the bombs in the grid
+
         self.grid_width = width
         self.grid_height = height
         self.bomb_no = bomb_no
@@ -28,10 +29,12 @@ class MineSweeper():
         self.update_state()
         self.uncovered_count = 0
 
+    ### Updates the state after choosing decision
     def update_state(self):
         self.state = multiply(self.grid,self.fog)
         self.state = add(self.state,(self.fog-1))
 
+    ### Used during initialization to make bomb areas -1 on grid
     def plant_bombs(self):
         reordered_bomb_locs = []
         for bomb_loc in self.bomb_locs:
@@ -41,6 +44,7 @@ class MineSweeper():
             reordered_bomb_locs.append((row,col))
         self.bomb_locs = reordered_bomb_locs
     
+    ### Used after planting bombs in initialization phase  to make hints 1,2,3... bombs nearby etc
     def hint_maker(self):
         for r,c in self.bomb_locs:
             for i in range(r-1,r+2):
@@ -48,6 +52,7 @@ class MineSweeper():
                     if(i>-1 and j>-1 and i<self.grid_height and j<self.grid_width and self.grid[i][j]!=-1):
                         self.grid[i][j]+=1
 
+    ### Game logic for choosing a point in grid
     def choose(self,i,j):
         if(self.fog[i][j]==1):
             return self.state,False,-0.3
@@ -71,7 +76,9 @@ class MineSweeper():
         else:
             return self.state,True,-1
 
-@njit
+### THIS is the silightly more complex logic with Breadth First Search
+### Used to unfog the grid if zeros are there in nearby region and if the chosen grid is a zero cell
+@njit(fastmath=True)
 def unfog_zeros(grid,fog,i,j):
     h,w = grid.shape
     queue = []
