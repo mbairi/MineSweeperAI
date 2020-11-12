@@ -5,6 +5,12 @@ This project was created from scratch using Python,Numpy to create the game logi
 # Details:
 These are just to give you a rough overview of the project, more details about functions and variabls can be seen in the <b>comments of my code</b><br/>
 
+## Requirements
+    pytorch
+    numpy
+    matplotlib
+    pygame
+
 ## Result:
 <img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/finalres.gif" width="500"/><br/>
 white = zeros<br/>
