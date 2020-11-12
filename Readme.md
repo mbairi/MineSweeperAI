@@ -1,6 +1,15 @@
-# Details:
+# Introduction
 
-These are just to give you a rough overview of the project, more details about functions and variabls can be seen in the comments of my code.
+This project was created from scratch using Python,Numpy to create the game logic, pygame to render the states and PyTorch to train the AI. It has given satisfactory results with the now dated DQN algorithm.<br/>
+
+# Details:
+These are just to give you a rough overview of the project, more details about functions and variabls can be seen in the <b>comments of my code</b><br/>
+
+## Result:
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/finalres.gif" width="500"/><br/>
+white = zeros<br/>
+dark gray = unexplored<br/>
+<b> Note:</b> The game has been slowed down to do 2 decisions every 1 second<br/>
 
 ## Game
 Created the minesweeper game from scratch using python and numpy. Can take upto 7000 decisions per second when the renderer is off. the game component supports creation of any grid size with any number of bombs. <br/>
@@ -45,4 +54,7 @@ A module for reading the log file and printing a smoothened all in one normalize
 
     cd Logs
     python plotter.py
+
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Logs/intermediate%20plot.png" width = "700px"/><br/>
+Intermediate plot at ~3500 batches in
 
