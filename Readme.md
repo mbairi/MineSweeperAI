@@ -28,8 +28,8 @@ I have implemented a click and playable version incorporating both the above in 
 
     python playable.py
 
-## Deep Q Learning
-
+## Reinforcement Learning
+### 1. Deep Q learning
 Deep Q learning takes in the state and tries to predict the action which will maximize the reward of the game. As opposed to traditional Q learning where all possible states are stored in memory, Deep Q tries to find a relation between input state and action, relieving the stress on memory requirements of the algorithm.<br/>
 
 I have implemented Dueling DQN with help from RL Adventure repo<br/>
@@ -40,6 +40,11 @@ It takes roughly 20,000 x 2048 decisions to reach a rough winrate of 65 percent 
 
     python train_ddqn.py
 
+### 2. Action Masking
+Implemented action masking in softmax layer of the model to prevent it from choosing invalid actions, such as tiles which are already selected.<br/>
+This modification helped the model learn faster as opposed to giving it a -ve reward on choosing invalid actions<br/>
+### 3. Gradient Clipping
+Added a clip to the gradients as I was facing vanishing and exploding gradients leading to nan values after few epochs of training <br/>
 ## Testing 
 
 A simple python file for loading the pre trained module and testing its winrate and visualized test is written. <br/>
