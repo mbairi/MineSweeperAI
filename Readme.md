@@ -49,22 +49,41 @@ It takes roughly 20,000 x 2048 decisions to reach a rough winrate of 65 percent 
 ### 2. Action Masking
 Implemented action masking in softmax layer of the model to prevent it from choosing invalid actions, such as tiles which are already selected.<br/>
 This modification helped the model learn faster as opposed to giving it a -ve reward on choosing invalid actions<br/>
-### 3. Gradient Clipping
+### 3. Gradient Clipping ( Deprecated )
 Added a clip to the gradients as I was facing vanishing and exploding gradients leading to nan values after few epochs of training <br/>
+### 4. Soft Target Network update 
+Due to this, gradient clipping is not required. The soft clipping solved the loss jumping to very high values.<br/>
+
 ## Testing 
 
 A simple python file for loading the pre trained module and testing its winrate and visualized test is written. <br/>
 <b> Logic for testing is written in *tester.py*</br></b>
 
+    python tester.py
+
+<b>win_tester: </b> function checks the number of wins in 1000 games <br/>
+<b>slow_tester: </b> visualizes a single game of the game with the AI while printing rewards </br>
+
 ## Plotting
 
 A module for reading the log file and printing a smoothened all in one normalized graph is present.
-<br/>Note the plotter can run in <b>realtime while the module is being trained </b>as it reads from "./Logs/ddqn_log.txt" which is being written to in realtime by train_ddqn.py<br/>Re running of the plotter is required to update to latest epoch.<br/>
-<b>Note: </b> the edge of the graph towards the last epoch always falls due to smoothening</br>
-<b> Logic for the same is in *./Logs/plotter.py* </b><br/>
+<br/>Note the plotter can run in <b>realtime while the module is being trained </b>as it reads from "./Logs/ddqn_log.txt" which is being written to in realtime by train_ddqn.py<br/>
+
+Static Plotter:
 
     cd Logs
     python plotter.py
+
+Dynamic Plotter ( Refreshes every second ) :
+
+    cd Logs
+    python dynamic_plotter.py
+
+<b> Note:</b> <br/>
+1. for both let 150 steps of the training run, cause smoothener needs a minimum of 150 steps.
+1. The edge of the graph always falls off as a straight line due to smoothening factor. Don't panic ~_~
+1. Everything is normalized from 0-1 just for my ease to see at a glance if the model is learning or not.
+
 
 <img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Logs/intermediate%20plot.png" width = "700px"/><br/>
 Intermediate plot at ~3500 batches in

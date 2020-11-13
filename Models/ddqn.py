@@ -13,20 +13,20 @@ class DDQN(nn.Module):
         
         self.epsilon = 1
         self.feature = nn.Sequential(
-            nn.Linear(inp_dim, 54),
+            nn.Linear(inp_dim, 128),
             nn.ReLU(),
         )
         
         self.advantage = nn.Sequential(
-            nn.Linear(54,36),
+            nn.Linear(128,64),
             nn.ReLU(),
-            nn.Linear(36, action_dim)
+            nn.Linear(64, action_dim)
         )
         
         self.value = nn.Sequential(
-            nn.Linear(54, 8),
+            nn.Linear(128, 32),
             nn.ReLU(),
-            nn.Linear(8, 1)
+            nn.Linear(32, 1)
         )
     
     ### This is important, masks invalid actions

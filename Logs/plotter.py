@@ -5,7 +5,7 @@ import re
 # Normalizes the values to 0-1 range for ease of plotting all in one
 normalize = True
 # Smoothness factor of the graph
-smooth_val = 100
+smooth_val = 20
 
 log_dnn = open('ddqn_log.txt','r')
 
@@ -14,6 +14,8 @@ losses = []
 wins = []
 epsilons = []
 x = []
+
+plots,_ = plt.plot([],[],[],[])
 
 for line in log_dnn:
     splits = re.split("[:\t\n+]",line)

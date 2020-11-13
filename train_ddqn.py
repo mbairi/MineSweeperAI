@@ -51,7 +51,9 @@ logs: Win Rate, Reward, Loss and Epsilon are written to this file and can be vis
 '''
 
 class Driver():
+
     def __init__(self,width,height,bomb_no,render_flag):
+
         self.width = width
         self.height = height
         self.bomb_no = bomb_no
@@ -59,17 +61,19 @@ class Driver():
         self.env = MineSweeper(self.width,self.height,self.bomb_no)
         self.current_model = DDQN(self.box_count,self.box_count)
         self.target_model = DDQN(self.box_count,self.box_count)
-        self.optimizer = torch.optim.Adam(self.current_model.parameters(),lr=0.002,weight_decay=1e-5)
+        self.optimizer = torch.optim.Adam(self.current_model.parameters(),lr=0.003,weight_decay=1e-5)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=2000,gamma=0.95)
         self.target_model.load_state_dict(self.current_model.state_dict())
         self.buffer = Buffer(100000)
         self.gamma = 0.99
         self.render_flag = render_flag
-        self.epsilon_min = 0.05
-        self.epsilon_decay = 0.9
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.91
         self.reward_threshold = 0.12
         self.reward_step = 0.01
-        self.batch_size = 2048
+        self.batch_size = 4096
+        self.tau = 5e-5
+        self.log = open("./Logs/ddqn_log.txt",'w')
 
         if(render_flag):
             self.Render = Render(self.env.state)
@@ -89,9 +93,10 @@ class Driver():
         next_fog = 1-self.env.fog
         return next_state,terminal,reward,next_fog
     
+    ### Reward Based Epsilon Decay 
     def epsilon_update(self,avg_reward):
         if(avg_reward>self.reward_threshold):
-            self.current_model.epsilon = max(0.01,self.current_model.epsilon*self.epsilon_decay)
+            self.current_model.epsilon = max(self.epsilon_min,self.current_model.epsilon*self.epsilon_decay)
             self.reward_threshold+= self.reward_step
     
     def TD_Loss(self):
@@ -116,6 +121,7 @@ class Driver():
         #        Loss = (reward + gamma*Q_val(next_state)) - Q_val(current_state)
         #    If Terminal:
         #        Loss = reward - Q_val(current_state)
+
         q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
         next_q_value     = next_q_values.max(1)[0]
         expected_q_value = reward + self.gamma * next_q_value * (1 - done)
@@ -126,31 +132,53 @@ class Driver():
         self.optimizer.zero_grad()
         loss.backward()
 
-        # Gradient Clipping to prevent explosion/ vanishing
-        for param in self.current_model.parameters():
-            param.grad.data.clamp_(-4, 4)
-
         self.optimizer.step()
         self.scheduler.step()
+
+        for target_param, local_param in zip(self.target_model.parameters(), self.current_model.parameters()):
+            target_param.data.copy_(self.tau*local_param.data + (1.0-self.tau)*target_param.data)
+
         return loss_print
+
+    def save_checkpoints(self,batch_no):
+        path = "./pre-trained/ddqn_dnn"+str(batch_no)+".pth"
+        torch.save({
+            'epoch': batch_no,
+            'current_state_dict': self.current_model.state_dict(),
+            'target_state_dict' : self.target_model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'epsilon':self.current_model.epsilon
+        }, path)
+
+    def save_logs(self,batch_no,avg_reward,loss,wins):
+        res = [
+                    str(batch_no),
+                    "\tAvg Reward: ",
+                    str(avg_reward),
+                    "\t Loss: ",
+                    str(loss),
+                    "\t Wins: ", 
+                    str(wins),
+                    "\t Epsilon: ",
+                    str(self.current_model.epsilon)
+        ]
+        log_line = " ".join(res)
+        print(log_line)
+        self.log.write(log_line+"\n")
+        self.log.flush()
 
 def main():
 
     driver = Driver(6,6,6,False)
     state = driver.env.state
-    log = open("./Logs/ddqn_log.txt",'w')
-
-    epochs = 60000
+    epochs = 20000
     save_every = 1000
-    update_targ_every = 20000
-
     count = 0
     running_reward = 0 
     batch_no = 0
     wins=0
     total=0
     
-
     while(batch_no<epochs):
 
         # simple state action reward loop and writes the actions to buffer
@@ -158,7 +186,6 @@ def main():
         action = driver.get_action(state,mask)
         next_state,terminal,reward,_ = driver.do_step(action)
         driver.buffer.push(state.flatten(),action,mask.flatten(),reward,next_state.flatten(),(1-driver.env.fog).flatten(),terminal)
-        
         state = next_state
         count+=1
         running_reward+=reward
@@ -183,25 +210,7 @@ def main():
             batch_no+=1
             avg_reward = running_reward/driver.batch_size
             wins = wins*100/total
-            res = [
-                    str(batch_no),
-                    "\tAvg Reward: ",
-                    str(avg_reward),
-                    "\t Loss: ",
-                    str(loss),
-                    "\t Wins: ", 
-                    str(wins),
-                    "\t Epsilon: ",
-                    str(driver.current_model.epsilon)
-            ]
-
-            # prints on the command line
-            log_line = " ".join(res)
-            print(log_line)
-
-            # writes the metrics to log files for graphing in plotter.py
-            log.write(log_line+"\n")
-            log.flush()
+            driver.save_logs(batch_no,avg_reward,loss,wins)
 
             # Updates epsilon based on reward
             driver.epsilon_update(avg_reward)
@@ -214,17 +223,6 @@ def main():
 
             # Saves the model details to "./pre-trained" if 1000 batches have been processed
             if(batch_no%save_every==0):
-                path = "./pre-trained/ddqn_dnn"+str(batch_no)+".pth"
-                torch.save({
-                    'epoch': batch_no,
-                    'current_state_dict': driver.current_model.state_dict(),
-                    'target_state_dict' : driver.target_model.state_dict(),
-                    'optimizer_state_dict': driver.optimizer.state_dict(),
-                }, path)
-
-            # Updates the target model to current model every 12000 batches
-            if(batch_no%update_targ_every==0):
-                driver.target_model.load_state_dict(driver.current_model.state_dict())
-                driver.target_model.epsilon = driver.current_model.epsilon
+                driver.save_checkpoints(batch_no)
 
 main()
