@@ -27,12 +27,14 @@ The backend of the game is connected with PyGame renderer. If this is turned on,
 
 ## Playable version
 
-I have implemented a click and playable version incorporating both the above in object oriented fashion and included a clicker, and a solution display in the command prompt to debug.</br>
+I have implemented a click and playable version incorporating both the above in object oriented fashion and included a clicker, and a solution display in the command prompt to debug. Width, Height, and bomb numbers can be modified in the class variables</br>
 <b> Logic for the playable version is written in *playable.py*</b>
 <br/>
 <b> Just execute it in cmd to play it</b><br/>
 
     python playable.py
+
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/20grid.png" width ="700px"><br/>
 
 ## Reinforcement Learning
 ### 1. Deep Q learning
@@ -87,8 +89,8 @@ Dynamic Plotter ( Refreshes every second ) :
 
 <img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/AllinOneNormalized.png" width = "700px"/><br/>
 Normalized graph to give rough overview of the increase and decrease of parameters.<br/>
-<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/Loss.png"><br/>
-<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/reward.png"><br/>
-<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/winrate.png"><br/>
-<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/Epsilon.png"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/Loss.png" width ="700px"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/reward.png" width ="700px"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/winrate.png"width ="700px"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/Epsilon.png"width ="700px"><br/>
 

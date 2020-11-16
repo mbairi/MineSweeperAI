@@ -6,9 +6,10 @@ import pygame
 
 class Play():
     def __init__(self):
-        self.width = 6
-        self.height = 6
-        self.env = MineSweeper(self.width,self.height,10)
+        self.width = 20
+        self.height = 20
+        self.bombs = 20
+        self.env = MineSweeper(self.width,self.height,self.bombs)
         self.renderer = Render(self.env.state)
         self.renderer.state = self.env.state
 
