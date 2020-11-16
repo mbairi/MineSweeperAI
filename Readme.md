@@ -57,6 +57,8 @@ This modification helped the model learn faster as opposed to giving it a -ve re
 Added a clip to the gradients as I was facing vanishing and exploding gradients leading to nan values after few epochs of training <br/>
 ### 4. Soft Target Network update 
 Due to this, gradient clipping is not required. The soft clipping solved the loss jumping to very high values.<br/>
+### 5. Reward Based Epsilon Decay (RBED)
+This implementation carries out epsilon decay based on the reward of the model. It decreases the epsilon value to a factor of itself (0.9x here) if a reward threshold is met, and then increases the reward threshold by a certain amount. The process is repeated and a minimum cap of 0.01 is set for epsilon.
 
 ## Testing 
 
