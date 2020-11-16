@@ -34,7 +34,7 @@ I have implemented a click and playable version incorporating both the above in 
 
     python playable.py
 
-<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/20grid.PNG" width ="700px"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/20grid.PNG" width ="500px"><br/>
 
 ## Reinforcement Learning
 ### 1. Deep Q learning
