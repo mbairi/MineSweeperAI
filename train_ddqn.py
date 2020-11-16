@@ -6,25 +6,25 @@ sys.path.insert(1,"./Models")
 import torch.nn as nn
 from ddqn import DDQN, Buffer
 from game import MineSweeper
-from torch.autograd import Variable
-from multiprocessing import Process
 from renderer import Render
 from numpy import float32
+from torch.autograd import Variable
+from multiprocessing import Process
 from torch import FloatTensor,LongTensor
 
 '''
 GAME PARAMS:
-width = width of board
-height = height of board
+width   = width of board
+height  = height of board
 bomb_no = bombs on map
-env = minesweeper environment created from "game.py" with params
+env     = minesweeper environment created from "game.py" with params
 
 AI PARAMS:
 optimizer:
-    lr = learning rate at 0.002, weight decay 1e-5
-    scheduler = reduces learning rate to 0.95 of itsemf every 2000 steps
-buffer = stores the State, Action, Reward, Next State, Terminal?, and Masks for each state
-gamma = weightage of reward to future actions
+    lr          = learning rate at 0.002, weight decay 1e-5
+    scheduler   = reduces learning rate to 0.95 of itsemf every 2000 steps
+buffer  = stores the State, Action, Reward, Next State, Terminal?, and Masks for each state
+gamma   = weightage of reward to future actions
 epsilon = the randomness of the DDQN agent
     this is not decayed by linear or exponential methods, 
     RBED is used ( Reward Based Epsilon Decay )
@@ -61,6 +61,7 @@ class Driver():
         self.env = MineSweeper(self.width,self.height,self.bomb_no)
         self.current_model = DDQN(self.box_count,self.box_count)
         self.target_model = DDQN(self.box_count,self.box_count)
+        self.target_model.eval()
         self.optimizer = torch.optim.Adam(self.current_model.parameters(),lr=0.003,weight_decay=1e-5)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=2000,gamma=0.95)
         self.target_model.load_state_dict(self.current_model.state_dict())
@@ -68,15 +69,25 @@ class Driver():
         self.gamma = 0.99
         self.render_flag = render_flag
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.91
+        self.epsilon_decay = 0.90
         self.reward_threshold = 0.12
         self.reward_step = 0.01
         self.batch_size = 4096
         self.tau = 5e-5
         self.log = open("./Logs/ddqn_log.txt",'w')
 
-        if(render_flag):
+        if(self.render_flag):
             self.Render = Render(self.env.state)
+
+    
+    def load_models(self,number):
+        path = "./pre-trained/ddqn_dnn"+str(number)+".pth"
+        weights = torch.load(path)
+        self.current_model.load_state_dict(weights['current_state_dict'])
+        self.target_model.load_state_dict(weights['target_state_dict'])
+        self.optimizer.load_state_dict(weights['optimizer_state_dict'])
+        self.current_model.epsilon = weights['epsilon']
+
 
     ### Get an action from the DDQN model by supplying it State and Mask
     def get_action(self,state,mask):
@@ -89,6 +100,10 @@ class Driver():
     def do_step(self,action):
         i = int(action/self.width)
         j = action%self.width
+        if(self.render_flag):
+            self.Render.state = self.env.state
+            self.Render.draw()
+            self.Render.bugfix()
         next_state,terminal,reward = self.env.choose(i,j)
         next_fog = 1-self.env.fog
         return next_state,terminal,reward,next_fog
@@ -105,12 +120,13 @@ class Driver():
 
         ### Converts the variabls to tensors for processing by DDQN
         state      = Variable(FloatTensor(float32(state)))
-        next_state = Variable(FloatTensor(float32(next_state)), requires_grad=False)
-        action     = Variable(LongTensor(float32(action)))
         mask      = Variable(FloatTensor(float32(mask)))
-        next_mask      = Variable(FloatTensor(float32(next_mask)))
-        reward     = Variable(FloatTensor(reward))
-        done       = Variable(FloatTensor(terminal))
+        next_state = FloatTensor(float32(next_state))
+        action     = LongTensor(float32(action))
+        next_mask      = FloatTensor(float32(next_mask))
+        reward     = FloatTensor(reward)
+        done       = FloatTensor(terminal)
+
 
         ### Predicts Q value for present and next state with current and target model
         q_values      = self.current_model(state,mask)
@@ -137,7 +153,6 @@ class Driver():
 
         for target_param, local_param in zip(self.target_model.parameters(), self.current_model.parameters()):
             target_param.data.copy_(self.tau*local_param.data + (1.0-self.tau)*target_param.data)
-
         return loss_print
 
     def save_checkpoints(self,batch_no):
@@ -167,12 +182,13 @@ class Driver():
         self.log.write(log_line+"\n")
         self.log.flush()
 
+
 def main():
 
     driver = Driver(6,6,6,False)
     state = driver.env.state
     epochs = 20000
-    save_every = 1000
+    save_every = 2000
     count = 0
     running_reward = 0 
     batch_no = 0
@@ -180,7 +196,7 @@ def main():
     total=0
     
     while(batch_no<epochs):
-
+        
         # simple state action reward loop and writes the actions to buffer
         mask = 1- driver.env.fog
         action = driver.get_action(state,mask)
@@ -200,7 +216,6 @@ def main():
             total+=1
 
         if(count==driver.batch_size):
-
             # Computes the Loss
             driver.current_model.train()
             loss = driver.TD_Loss()

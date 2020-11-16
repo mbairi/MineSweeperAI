@@ -37,25 +37,26 @@ class MineSweeper():
     ### Used during initialization to make bomb areas -1 on grid
     def plant_bombs(self):
         reordered_bomb_locs = []
+        grid_width = self.grid_width
         for bomb_loc in self.bomb_locs:
-            row = int(bomb_loc/self.grid_width)
-            col = int(bomb_loc%self.grid_width)
+            row = int(bomb_loc/grid_width)
+            col = int(bomb_loc%grid_width)
             self.grid[row][col] = -1
             reordered_bomb_locs.append((row,col))
         self.bomb_locs = reordered_bomb_locs
     
     ### Used after planting bombs in initialization phase  to make hints 1,2,3... bombs nearby etc
     def hint_maker(self):
+        grid_height = self.grid_height
+        grid_width = self.grid_width
         for r,c in self.bomb_locs:
             for i in range(r-1,r+2):
                 for j in range(c-1,c+2):
-                    if(i>-1 and j>-1 and i<self.grid_height and j<self.grid_width and self.grid[i][j]!=-1):
+                    if(i>-1 and j>-1 and i<grid_height and j<grid_width and self.grid[i][j]!=-1):
                         self.grid[i][j]+=1
 
     ### Game logic for choosing a point in grid
     def choose(self,i,j):
-        if(self.fog[i][j]==1):
-            return self.state,False,-0.3
 
         if(self.grid[i][j]==0):
             unfog_zeros(self.grid,self.fog,i,j)

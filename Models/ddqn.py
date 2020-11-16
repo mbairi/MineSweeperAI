@@ -15,6 +15,8 @@ class DDQN(nn.Module):
         self.feature = nn.Sequential(
             nn.Linear(inp_dim, 128),
             nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
         )
         
         self.advantage = nn.Sequential(
@@ -24,9 +26,9 @@ class DDQN(nn.Module):
         )
         
         self.value = nn.Sequential(
-            nn.Linear(128, 32),
+            nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Linear(32, 1)
+            nn.Linear(64, 1)
         )
     
     ### This is important, masks invalid actions
@@ -46,8 +48,8 @@ class DDQN(nn.Module):
     def act(self,state,mask):
         bruh = random.random()
         if bruh > self.epsilon:
-            state   = Variable(torch.FloatTensor(state).unsqueeze(0), requires_grad=False)
-            mask   = Variable(torch.FloatTensor(mask).unsqueeze(0), requires_grad=False)
+            state   = torch.FloatTensor(state).unsqueeze(0)
+            mask   = torch.FloatTensor(mask).unsqueeze(0)
             q_value = self.forward(state,mask)
             action  = q_value.max(1)[1].data[0].item()
         else:

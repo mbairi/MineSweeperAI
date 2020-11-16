@@ -1,11 +1,20 @@
 import matplotlib.pyplot as plt
+import matplotlib.style as style
+import seaborn as sns
 import numpy as np
 import re
 
 # Normalizes the values to 0-1 range for ease of plotting all in one
 normalize = True
 # Smoothness factor of the graph
-smooth_val = 20
+smooth_val = 250
+
+CB91_Blue = '#2CBDFE'
+CB91_Green = '#47DBCD'
+CB91_Pink = '#F3A0F2'
+CB91_Purple = '#9D2EC5'
+CB91_Violet = '#661D98'
+CB91_Amber = '#F5B14C'
 
 log_dnn = open('ddqn_log.txt','r')
 
@@ -15,7 +24,11 @@ wins = []
 epsilons = []
 x = []
 
-plots,_ = plt.plot([],[],[],[])
+sns.set(style="darkgrid")
+plt.xticks(size=14)
+plt.yticks(size=14)   
+sns.despine(left=True,bottom=True)
+plt.xlabel("Number of Batches")
 
 for line in log_dnn:
     splits = re.split("[:\t\n+]",line)
@@ -30,9 +43,9 @@ reward = np.asarray(rewards)
 losses = np.asarray(losses)
 wins = np.asarray(wins)
 epsilons = np.asarray(epsilons)
-x = np.asarray(x)
+x = np.asarray(x)[:-smooth_val]
 
-### Got dis from stackoverflow :D
+### Got this from stackoverflow :D
 def smooth(y, box_pts):
     box = np.ones(box_pts)/box_pts
     y_smooth = np.convolve(y, box, mode='same')
@@ -47,9 +60,15 @@ if normalize==True:
     wins = NormalizeData(wins)
     epsilons = NormalizeData(epsilons)
 
-l1, = plt.plot(x, smooth(reward,smooth_val), 'r-', lw=1.5,label="Reward")
-l2, = plt.plot(x, smooth(losses,smooth_val),'b-',lw=1.5,label="Loss")
-l3, = plt.plot(x, smooth(wins,smooth_val),'g-',lw=1.5,label="Win Rate")
-l4, = plt.plot(x, smooth(epsilons,smooth_val),'y-',lw = 1.5,label="Epsilon")
-plt.legend(handles=[l1,l2,l3,l4])
+### Comment the required lines in both plot and legend, and set Normalize = False to get true isolated graphs
+l1, = plt.plot(x, smooth(reward,smooth_val)[:-smooth_val], CB91_Blue, antialiased=True,lw=1.75,label="Reward")
+l2, = plt.plot(x, smooth(losses,smooth_val)[:-smooth_val], CB91_Purple, antialiased=True,lw=1.75,label="Loss")
+l3, = plt.plot(x, smooth(wins,smooth_val)[:-smooth_val], CB91_Violet, antialiased=True,lw=1.75,label="Win Rate")
+l4, = plt.plot(x, smooth(epsilons,smooth_val)[:-smooth_val],CB91_Amber, linestyle="dashed",antialiased=True,lw = 1.75,label="Epsilon")
+plt.legend(handles=[
+                    #l1,
+                    l2,
+                    l3,
+                    l4
+        ])
 plt.show()

@@ -85,6 +85,10 @@ Dynamic Plotter ( Refreshes every second ) :
 1. Everything is normalized from 0-1 just for my ease to see at a glance if the model is learning or not.
 
 
-<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Logs/intermediate%20plot.png" width = "700px"/><br/>
-Intermediate plot at ~3500 batches in
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/AllinOneNormalized.png" width = "700px"/><br/>
+Normalized graph to give rough overview of the increase and decrease of parameters.<br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/Loss.png"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/reward.png"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/winrate.png"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/Epsilon.png"><br/>
 
