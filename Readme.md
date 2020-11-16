@@ -89,7 +89,8 @@ Dynamic Plotter ( Refreshes every second ) :
 
 
 <img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/AllinOneNormalized.png" width = "700px"/><br/>
-Normalized graph to give rough overview of the increase and decrease of parameters.<br/>
+(Above) Normalized graph to give rough overview of the increase and decrease of parameters.<br/>
+(Below) Isolated graphs of the parameters with respect to their original scales.<br/>
 <img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/Loss.png" width ="700px"><br/>
 <img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/reward.png" width ="700px"><br/>
 <img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/winrate.png" width ="700px"><br/>
