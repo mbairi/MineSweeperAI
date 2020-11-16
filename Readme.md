@@ -43,7 +43,8 @@ Deep Q learning takes in the state and tries to predict the action which will ma
 
 I have implemented Dueling DQN with help from RL Adventure repo<br/>
 
-It takes roughly 20,000 x 2048 decisions to reach a rough winrate of 65 percent on a 6x6 board with 6 mines.<br/>
+It takes roughly 20,000 x 4096 decisions to reach a rough winrate of 60 percent on a 6x6 board with 6 mines.<br/>
+Training on an i5 6200u took about 18 hours roughly.<br/>
 
 <b> Logic for training is written in *train_ddqn.py*</b> <br/>
 
