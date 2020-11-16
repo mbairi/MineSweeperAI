@@ -34,7 +34,8 @@ I have implemented a click and playable version incorporating both the above in 
 
     python playable.py
 
-<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/20grid.PNG" width ="500px"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/20grid.PNG" width ="400px"><br/>
+Playable eversion of 20x20 grid with 20 mines<br/>
 
 ## Reinforcement Learning
 ### 1. Deep Q learning
