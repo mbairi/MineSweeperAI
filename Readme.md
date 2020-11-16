@@ -34,7 +34,7 @@ I have implemented a click and playable version incorporating both the above in 
 
     python playable.py
 
-<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/20grid.png" width ="700px"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/20grid.PNG" width ="700px"><br/>
 
 ## Reinforcement Learning
 ### 1. Deep Q learning
@@ -91,6 +91,6 @@ Dynamic Plotter ( Refreshes every second ) :
 Normalized graph to give rough overview of the increase and decrease of parameters.<br/>
 <img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/Loss.png" width ="700px"><br/>
 <img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/reward.png" width ="700px"><br/>
-<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/winrate.png"width ="700px"><br/>
-<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/Epsilon.png"width ="700px"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/winrate.png" width ="700px"><br/>
+<img src="https://github.com/Manjunatha-b/MineSweeperAI/blob/master/Example/Epsilon.png" width ="700px"><br/>
 
