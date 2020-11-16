@@ -3,7 +3,7 @@
 This project was created from scratch using Python,Numpy to create the game logic, pygame to render the states and PyTorch to train the AI. It has given satisfactory results with the now dated DQN algorithm.<br/>
 
 # Details:
-These are just to give you a rough overview of the project, more details about functions and variabls can be seen in the <b>comments of my code</b><br/>
+These are just to give you a rough overview of the project, more details about functions and variables can be seen in the <b>comments of my code</b><br/>
 
 ## Requirements
     pytorch
