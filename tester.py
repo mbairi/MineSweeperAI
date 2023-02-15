@@ -28,7 +28,7 @@ class Tester():
         return action
 
     def load_models(self,number):
-        path = "pre-trained\ddqn_dnn"+str(number)+".pth"
+        path = "pre-trained/ddqn_dnn"+str(number)+".pth"
         dict = torch.load(path)
         self.model.load_state_dict(dict['current_state_dict'])
         self.model.epsilon = 0
