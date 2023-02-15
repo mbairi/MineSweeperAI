@@ -1,7 +1,7 @@
 import time
 import numpy as np
 from numpy import multiply,zeros,add,random,count_nonzero
-from numpy import int as intnp
+from numpy import intp as intnp
 from numba import njit
 
 class MineSweeper():
