@@ -92,6 +92,7 @@ class Driver():
     ### Get an action from the DDQN model by supplying it State and Mask
     def get_action(self,state,mask):
         state = state.flatten()
+        print(state)
         mask = mask.flatten()
         action = self.current_model.act(state,mask)
         return action
@@ -187,7 +188,7 @@ def main():
 
     driver = Driver(6,6,6,False)
     state = driver.env.state
-    epochs = 100
+    epochs = 1
     save_every = 20
     count = 0
     running_reward = 0 

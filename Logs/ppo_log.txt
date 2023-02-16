@@ -1,0 +1,10 @@
+1 	Avg Reward:  0.119873046875 	 Loss:  1.6853605508804321 	 Wins:  0.28790786948176583 	 Epsilon_actor:  1 	 Epsilon_critic:  1
+2 	Avg Reward:  0.1246337890625 	 Loss:  1.5986961126327515 	 Wins:  0.0 	 Epsilon_actor:  1 	 Epsilon_critic:  1
+3 	Avg Reward:  0.1280517578125 	 Loss:  1.7121222019195557 	 Wins:  0.09832841691248771 	 Epsilon_actor:  0.9 	 Epsilon_critic:  0.81
+4 	Avg Reward:  0.12255859375 	 Loss:  2.1432571411132812 	 Wins:  0.09689922480620156 	 Epsilon_actor:  0.9 	 Epsilon_critic:  0.81
+5 	Avg Reward:  0.1304931640625 	 Loss:  1.7573623657226562 	 Wins:  0.29615004935834155 	 Epsilon_actor:  0.9 	 Epsilon_critic:  0.81
+6 	Avg Reward:  0.1217041015625 	 Loss:  1.8268837928771973 	 Wins:  0.2892960462873674 	 Epsilon_actor:  0.81 	 Epsilon_critic:  0.7290000000000001
+7 	Avg Reward:  0.111083984375 	 Loss:  2.0974011421203613 	 Wins:  0.28142589118198874 	 Epsilon_actor:  0.81 	 Epsilon_critic:  0.7290000000000001
+8 	Avg Reward:  0.1243896484375 	 Loss:  2.058380126953125 	 Wins:  0.3879728419010669 	 Epsilon_actor:  0.81 	 Epsilon_critic:  0.7290000000000001
+9 	Avg Reward:  0.13427734375 	 Loss:  3.190574884414673 	 Wins:  0.6944444444444444 	 Epsilon_actor:  0.81 	 Epsilon_critic:  0.7290000000000001
+10 	Avg Reward:  0.134521484375 	 Loss:  4.286583423614502 	 Wins:  0.2994011976047904 	 Epsilon_actor:  0.81 	 Epsilon_critic:  0.7290000000000001

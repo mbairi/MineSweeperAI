@@ -24,14 +24,15 @@ class Actor(nn.Module):
     
     ### This is important, masks invalid actions
     def masked_softmax(self,vec, mask, dim=1, epsilon=1e-5):
-            exps = torch.exp(vec)
-            masked_exps = exps * mask.float()
-            masked_sums = masked_exps.sum(dim, keepdim=True) + epsilon
-            return (masked_exps/masked_sums)
+        exps = torch.exp(vec)
+        masked_exps = exps * mask.float()
+        masked_sums = masked_exps.sum(dim, keepdim=True) + epsilon
+        return (masked_exps/masked_sums)
         
     def forward(self, x,mask):
         x=x/8
-        x = self.feature(x)
+        x=torch.FloatTensor(x).unsqueeze(0)
+        mask   = torch.FloatTensor(mask).unsqueeze(0)
         dist = self.masked_softmax(self.actor(x),mask)
         dist = Categorical(dist)
         return dist
@@ -69,10 +70,10 @@ class Critic(nn.Module):
     ### This is important, masks invalid actions
 
         
-    def forward(self, x,mask):
+    def forward(self, x):
         x=x/8
-        x = self.feature(x)
-        dist = self.actor(x)
+        x= torch.FloatTensor(x).unsqueeze(0)
+        dist = self.critic(x)
         return dist
     
     # def act(self,state,mask):
