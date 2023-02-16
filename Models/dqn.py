@@ -6,6 +6,8 @@ from collections import deque
 import numpy as np
 import random
 
+device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 class DQN(nn.Module):
     
     def __init__(self, inp_dim, action_dim):
@@ -48,8 +50,8 @@ class DQN(nn.Module):
     def act(self,state,mask):
         bruh = random.random()
         if bruh > self.epsilon:
-            state   = torch.FloatTensor(state).unsqueeze(0)
-            mask   = torch.FloatTensor(mask).unsqueeze(0)
+            state   = torch.FloatTensor(state).unsqueeze(0).to(device)
+            mask   = torch.FloatTensor(mask).unsqueeze(0).to(device)
             q_value = self.forward(state,mask)
             action  = q_value.max(1)[1].data[0].item()
         else:
@@ -98,9 +100,9 @@ class DDQNOld(nn.Module):
     def act(self,state,mask):
         bruh = random.random()
         if bruh > self.epsilon:
-            state   = Variable(torch.FloatTensor(state).unsqueeze(0), requires_grad=False)
-            mask   = Variable(torch.FloatTensor(mask).unsqueeze(0), requires_grad=False)
-            q_value = self.forward(state,mask)
+            state   = Variable(torch.FloatTensor(state).unsqueeze(0), requires_grad=False).to(device)
+            mask   = Variable(torch.FloatTensor(mask).unsqueeze(0), requires_grad=False).to(device)
+            q_value = self.forward(state,mask).to(device)
             action  = q_value.max(1)[1].data[0].item()
         else:
             indices = np.nonzero(mask)[0]

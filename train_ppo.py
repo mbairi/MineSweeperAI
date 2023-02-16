@@ -50,6 +50,9 @@ epochs: self explanatory
 logs: Win Rate, Reward, Loss and Epsilon are written to this file and can be visualized using ./Logs/plotter.py
 '''
 
+device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
+
 class Driver():
 
     def __init__(self,width,height,bomb_no,render_flag):
@@ -59,8 +62,8 @@ class Driver():
         self.bomb_no = bomb_no
         self.box_count = width*height
         self.env = MineSweeper(self.width,self.height,self.bomb_no)
-        self.actor = Actor(self.box_count,self.box_count)
-        self.critic = Critic(self.box_count)
+        self.actor = Actor(self.box_count,self.box_count).to(device)
+        self.critic = Critic(self.box_count).to(device)
         # self.target_model.eval()
         self.optimizer_actor = torch.optim.Adam(self.actor.parameters(),lr=0.003,weight_decay=1e-5)
         self.optimizer_critic = torch.optim.Adam(self.critic.parameters(),lr=0.003,weight_decay=1e-5)
@@ -133,13 +136,13 @@ class Driver():
         state,prob,val,action,mask,reward,terminal = self.buffer.sample(self.batch_size)
 
         ### Converts the variabls to tensors for processing by DDQN
-        state      = Variable(FloatTensor(float32(state)))
-        prob      =  FloatTensor(prob)
-        val       =  FloatTensor(val)
-        mask      = Variable(FloatTensor(float32(mask)))        
-        action     = LongTensor(float32(action))        
-        reward     = FloatTensor(reward)
-        done       = FloatTensor(terminal)
+        state      = Variable(FloatTensor(float32(state))).to(device)
+        prob      =  FloatTensor(prob).to(device)
+        val       =  FloatTensor(val).to(device)
+        mask      = Variable(FloatTensor(float32(mask))).to(device)        
+        action     = LongTensor(float32(action)).to(device)        
+        reward     = FloatTensor(reward).to(device)
+        done       = FloatTensor(terminal).to(device)
 
         advantage=np.zeros(len(reward),dtype=np.float32)
         for t in range(len(reward)-1):
@@ -149,12 +152,12 @@ class Driver():
                 a_t+=discount*(reward[k].item()+self.gamma*val[k+1].item()*(1-int(done[k].item()))-val[k].item())
                 discount*=self.gamma*self.gae_lambda
             advantage[t]=a_t
-        advantage=torch.tensor(advantage)
+        advantage=torch.tensor(advantage).to(device)
 
         #SGD
         dist=self.actor(state,mask)
-        critic_value=self.critic(state)
-        critic_value=torch.squeeze(critic_value)
+        critic_value=self.critic(state).to(device)
+        critic_value=torch.squeeze(critic_value).to(device)
         new_probs=dist.log_prob(action)
         prob_ratio=new_probs.exp()/prob.exp()
         weighted_probs=advantage*prob_ratio
@@ -218,8 +221,8 @@ def main():
 
     driver = Driver(6,6,6,False)
     state = driver.env.state
-    epochs = 1000
-    save_every = 200
+    epochs = 10000
+    save_every = 2000
     count = 0
     running_reward = 0 
     batch_no = 0

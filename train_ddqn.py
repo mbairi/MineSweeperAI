@@ -4,13 +4,16 @@ import numpy as np
 import sys
 sys.path.insert(1,"./Models")
 import torch.nn as nn
-from dqn import DQN, Buffer
+from ddqn import DDQN, Buffer
 from game import MineSweeper
 from renderer import Render
 from numpy import float32
 from torch.autograd import Variable
 from multiprocessing import Process
 from torch import FloatTensor,LongTensor
+
+device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
 '''
 GAME PARAMS:
@@ -59,8 +62,8 @@ class Driver():
         self.bomb_no = bomb_no
         self.box_count = width*height
         self.env = MineSweeper(self.width,self.height,self.bomb_no)
-        self.current_model = DQN(self.box_count,self.box_count)
-        self.target_model = DQN(self.box_count,self.box_count)
+        self.current_model = DDQN(self.box_count,self.box_count).to(device)
+        self.target_model = DDQN(self.box_count,self.box_count).to(device)
         self.target_model.eval()
         self.optimizer = torch.optim.Adam(self.current_model.parameters(),lr=0.003,weight_decay=1e-5)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=2000,gamma=0.95)
@@ -119,20 +122,20 @@ class Driver():
         state,action,mask,reward,next_state,next_mask,terminal = self.buffer.sample(self.batch_size)
 
         ### Converts the variabls to tensors for processing by DDQN
-        state      = Variable(FloatTensor(float32(state)))
-        mask      = Variable(FloatTensor(float32(mask)))
-        next_state = FloatTensor(float32(next_state))
-        action     = LongTensor(float32(action))
-        next_mask      = FloatTensor(float32(next_mask))
-        reward     = FloatTensor(reward)
-        done       = FloatTensor(terminal)
+        state      = Variable(FloatTensor(float32(state))).to(device)
+        mask      = Variable(FloatTensor(float32(mask))).to(device)
+        next_state = FloatTensor(float32(next_state)).to(device)
+        action     = LongTensor(float32(action)).to(device)
+        next_mask      = FloatTensor(float32(next_mask)).to(device)
+        reward     = FloatTensor(reward).to(device)
+        done       = FloatTensor(terminal).to(device)
 
 
         ### Predicts Q value for present and next state with current and target model
         q_values      = self.current_model(state,mask)
         next_q_values = self.target_model(next_state,next_mask)
         q_crt_values =  self.current_model(next_state,next_mask)
-        action_max=torch.Tensor([torch.argmax(q_val) for q_val in q_crt_values])
+        action_max=torch.Tensor([torch.argmax(q_val) for q_val in q_crt_values]).to(device)
 
         # Calculates Loss:
         #    If not Terminal:
@@ -141,10 +144,10 @@ class Driver():
         #        Loss = reward - Q_val(current_state)
 
         q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
-        next_q_value     = torch.Tensor([next_q_values[i][int(action_max[i])] for i in range(action_max.shape[0])])
+        next_q_value     = torch.Tensor([next_q_values[i][int(action_max[i])] for i in range(action_max.shape[0])]).to(device)
         expected_q_value = reward + self.gamma * next_q_value * (1 - done)
         loss = (q_value - expected_q_value.detach()).pow(2).mean()
-        loss_print = loss.item()    
+        loss_print = loss.item()   
 
         # Propagates the Loss
         self.optimizer.zero_grad()

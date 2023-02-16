@@ -7,6 +7,8 @@ import numpy as np
 import random
 from torch.distributions.categorical import Categorical
 
+device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 class Actor(nn.Module):
     
     def __init__(self, inp_dim, action_dim):
@@ -31,8 +33,8 @@ class Actor(nn.Module):
         
     def forward(self, x,mask):
         x=x/8
-        x=torch.FloatTensor(x).unsqueeze(0)
-        mask   = torch.FloatTensor(mask).unsqueeze(0)
+        x=torch.FloatTensor(x).unsqueeze(0).to(device)
+        mask   = torch.FloatTensor(mask).unsqueeze(0).to(device)
         dist = self.masked_softmax(self.actor(x),mask)
         dist = Categorical(dist)
         return dist
@@ -72,7 +74,7 @@ class Critic(nn.Module):
         
     def forward(self, x):
         x=x/8
-        x= torch.FloatTensor(x).unsqueeze(0)
+        x= torch.FloatTensor(x).unsqueeze(0).to(device)
         dist = self.critic(x)
         return dist
     

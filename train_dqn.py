@@ -4,7 +4,7 @@ import numpy as np
 import sys
 sys.path.insert(1,"./Models")
 import torch.nn as nn
-from ddqn import DDQN, Buffer
+from dqn import DQN, Buffer
 from game import MineSweeper
 from renderer import Render
 from numpy import float32
@@ -49,6 +49,8 @@ update_targ_every : Updates the target model to current model every x steps
 epochs: self explanatory
 logs: Win Rate, Reward, Loss and Epsilon are written to this file and can be visualized using ./Logs/plotter.py
 '''
+device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
 class Driver():
 
@@ -59,8 +61,8 @@ class Driver():
         self.bomb_no = bomb_no
         self.box_count = width*height
         self.env = MineSweeper(self.width,self.height,self.bomb_no)
-        self.current_model = DDQN(self.box_count,self.box_count)
-        self.target_model = DDQN(self.box_count,self.box_count)
+        self.current_model = DQN(self.box_count,self.box_count).to(device)
+        self.target_model = DQN(self.box_count,self.box_count).to(device)
         self.target_model.eval()
         self.optimizer = torch.optim.Adam(self.current_model.parameters(),lr=0.003,weight_decay=1e-5)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=2000,gamma=0.95)
@@ -92,7 +94,6 @@ class Driver():
     ### Get an action from the DDQN model by supplying it State and Mask
     def get_action(self,state,mask):
         state = state.flatten()
-        print(state)
         mask = mask.flatten()
         action = self.current_model.act(state,mask)
         return action
@@ -120,13 +121,13 @@ class Driver():
         state,action,mask,reward,next_state,next_mask,terminal = self.buffer.sample(self.batch_size)
 
         ### Converts the variabls to tensors for processing by DDQN
-        state      = Variable(FloatTensor(float32(state)))
-        mask      = Variable(FloatTensor(float32(mask)))
-        next_state = FloatTensor(float32(next_state))
-        action     = LongTensor(float32(action))
-        next_mask      = FloatTensor(float32(next_mask))
-        reward     = FloatTensor(reward)
-        done       = FloatTensor(terminal)
+        state      = Variable(FloatTensor(float32(state))).to(device)
+        mask      = Variable(FloatTensor(float32(mask))).to(device)
+        next_state = FloatTensor(float32(next_state)).to(device)
+        action     = LongTensor(float32(action)).to(device)
+        next_mask      = FloatTensor(float32(next_mask)).to(device)
+        reward     = FloatTensor(reward).to(device)
+        done       = FloatTensor(terminal).to(device)
 
 
         ### Predicts Q value for present and next state with current and target model
@@ -188,8 +189,8 @@ def main():
 
     driver = Driver(6,6,6,False)
     state = driver.env.state
-    epochs = 1
-    save_every = 20
+    epochs = 10000
+    save_every = 2000
     count = 0
     running_reward = 0 
     batch_no = 0
