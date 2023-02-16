@@ -2,7 +2,8 @@ import torch
 import numpy as np
 import sys
 sys.path.insert(1,"./Models")
-from ddqn import DDQNOld, DDQN
+from ddqn import  DDQN
+from dqn import DQN
 from renderer import Render
 from game import MineSweeper
 import time
@@ -13,13 +14,14 @@ import time
 class Tester():
     def __init__(self,render_flag):
         self.model = DDQN(36,36)
+        # self.model = DQN(36,36)
         self.render_flag = render_flag
         self.width = 6
         self.height = 6
         self.env = MineSweeper(self.width,self.height,6)
         if(self.render_flag):
             self.renderer = Render(self.env.state)
-        self.load_models(20000)
+        self.load_models(1000)
     
     def get_action(self,state):
         state = state.flatten()
@@ -29,6 +31,7 @@ class Tester():
 
     def load_models(self,number):
         path = "pre-trained/ddqn_dnn"+str(number)+".pth"
+        # path = "pre-trained/dqn_dnn"+str(number)+".pth"
         dict = torch.load(path)
         self.model.load_state_dict(dict['current_state_dict'])
         self.model.epsilon = 0
@@ -69,6 +72,7 @@ def win_tester(games_no):
             step=0
     
     ### First_loss is subtracted so that the games with first pick as bomb are subtracted
+    print("Model: DDQN")
     print("Win Rate: "+str(wins*100/(games_no)))
     print("Win Rate excluding First Loss: "+str(wins*100/(games_no-first_loss)))
 
@@ -104,6 +108,6 @@ def slow_tester():
         
 def main():
     win_tester(1000)
-    #slow_tester()
+    # slow_tester()
 main()
         

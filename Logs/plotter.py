@@ -16,7 +16,7 @@ CB91_Purple = '#9D2EC5'
 CB91_Violet = '#661D98'
 CB91_Amber = '#F5B14C'
 
-log_dnn = open('ddqn_log.txt','r')
+log_dnn = open('dqn_log.txt','r')
 
 rewards = []
 losses = []
@@ -66,7 +66,7 @@ l2, = plt.plot(x, smooth(losses,smooth_val)[:-smooth_val], CB91_Purple, antialia
 l3, = plt.plot(x, smooth(wins,smooth_val)[:-smooth_val], CB91_Violet, antialiased=True,lw=1.75,label="Win Rate")
 l4, = plt.plot(x, smooth(epsilons,smooth_val)[:-smooth_val],CB91_Amber, linestyle="dashed",antialiased=True,lw = 1.75,label="Epsilon")
 plt.legend(handles=[
-                    #l1,
+                    l1,
                     l2,
                     l3,
                     l4

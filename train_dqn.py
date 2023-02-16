@@ -4,7 +4,7 @@ import numpy as np
 import sys
 sys.path.insert(1,"./Models")
 import torch.nn as nn
-from dqn import DQN, Buffer
+from ddqn import DDQN, Buffer
 from game import MineSweeper
 from renderer import Render
 from numpy import float32
@@ -59,8 +59,8 @@ class Driver():
         self.bomb_no = bomb_no
         self.box_count = width*height
         self.env = MineSweeper(self.width,self.height,self.bomb_no)
-        self.current_model = DQN(self.box_count,self.box_count)
-        self.target_model = DQN(self.box_count,self.box_count)
+        self.current_model = DDQN(self.box_count,self.box_count)
+        self.target_model = DDQN(self.box_count,self.box_count)
         self.target_model.eval()
         self.optimizer = torch.optim.Adam(self.current_model.parameters(),lr=0.003,weight_decay=1e-5)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=2000,gamma=0.95)
@@ -74,14 +74,14 @@ class Driver():
         self.reward_step = 0.01
         self.batch_size = 4096
         self.tau = 5e-5
-        self.log = open("./Logs/dqn_log.txt",'w')
+        self.log = open("./Logs/ddqn_log.txt",'w')
 
         if(self.render_flag):
             self.Render = Render(self.env.state)
 
     
     def load_models(self,number):
-        path = "./pre-trained/dqn_dnn"+str(number)+".pth"
+        path = "./pre-trained/ddqn_dnn"+str(number)+".pth"
         weights = torch.load(path)
         self.current_model.load_state_dict(weights['current_state_dict'])
         self.target_model.load_state_dict(weights['target_state_dict'])
@@ -131,8 +131,6 @@ class Driver():
         ### Predicts Q value for present and next state with current and target model
         q_values      = self.current_model(state,mask)
         next_q_values = self.target_model(next_state,next_mask)
-        q_crt_values =  self.current_model(next_state,next_mask)
-        action_max=torch.Tensor([torch.argmax(q_val) for q_val in q_crt_values])
 
         # Calculates Loss:
         #    If not Terminal:
@@ -141,7 +139,7 @@ class Driver():
         #        Loss = reward - Q_val(current_state)
 
         q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
-        next_q_value     = torch.Tensor([next_q_values[i][int(action_max[i])] for i in range(action_max.shape[0])])
+        next_q_value     = next_q_values.max(1)[0]
         expected_q_value = reward + self.gamma * next_q_value * (1 - done)
         loss = (q_value - expected_q_value.detach()).pow(2).mean()
         loss_print = loss.item()    
@@ -158,7 +156,7 @@ class Driver():
         return loss_print
 
     def save_checkpoints(self,batch_no):
-        path = "./pre-trained/dqn_dnn"+str(batch_no)+".pth"
+        path = "./pre-trained/ddqn_dnn"+str(batch_no)+".pth"
         torch.save({
             'epoch': batch_no,
             'current_state_dict': self.current_model.state_dict(),
@@ -189,8 +187,8 @@ def main():
 
     driver = Driver(6,6,6,False)
     state = driver.env.state
-    epochs = 10000
-    save_every = 2000
+    epochs = 100
+    save_every = 20
     count = 0
     running_reward = 0 
     batch_no = 0

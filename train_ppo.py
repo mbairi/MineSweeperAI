@@ -4,7 +4,7 @@ import numpy as np
 import sys
 sys.path.insert(1,"./Models")
 import torch.nn as nn
-from dqn import DQN, Buffer
+from ppo import Actor, Critic, Buffer
 from game import MineSweeper
 from renderer import Render
 from numpy import float32
@@ -59,14 +59,15 @@ class Driver():
         self.bomb_no = bomb_no
         self.box_count = width*height
         self.env = MineSweeper(self.width,self.height,self.bomb_no)
-        self.current_model = DQN(self.box_count,self.box_count)
-        self.target_model = DQN(self.box_count,self.box_count)
-        self.target_model.eval()
+        self.actor = Actor(self.box_count,self.box_count)
+        self.critic = Critic(self.box_count)
+        # self.target_model.eval()
         self.optimizer = torch.optim.Adam(self.current_model.parameters(),lr=0.003,weight_decay=1e-5)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=2000,gamma=0.95)
-        self.target_model.load_state_dict(self.current_model.state_dict())
+        # self.target_model.load_state_dict(self.current_model.state_dict())
         self.buffer = Buffer(100000)
         self.gamma = 0.99
+        self.gae_lambda = 0.95
         self.render_flag = render_flag
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.90
@@ -74,26 +75,26 @@ class Driver():
         self.reward_step = 0.01
         self.batch_size = 4096
         self.tau = 5e-5
-        self.log = open("./Logs/dqn_log.txt",'w')
+        self.log = open("./Logs/ppo_log.txt",'w')
 
         if(self.render_flag):
             self.Render = Render(self.env.state)
 
     
     def load_models(self,number):
-        path = "./pre-trained/dqn_dnn"+str(number)+".pth"
+        path = "./pre-trained/ppo_dnn"+str(number)+".pth"
         weights = torch.load(path)
-        self.current_model.load_state_dict(weights['current_state_dict'])
-        self.target_model.load_state_dict(weights['target_state_dict'])
+        self.actor.load_state_dict(weights['actor_state_dict'])
+        self.critic.load_state_dict(weights['critic_state_dict'])
         self.optimizer.load_state_dict(weights['optimizer_state_dict'])
-        self.current_model.epsilon = weights['epsilon']
+        self.actor.epsilon = weights['epsilon']
 
 
     ### Get an action from the DDQN model by supplying it State and Mask
     def get_action(self,state,mask):
         state = state.flatten()
         mask = mask.flatten()
-        action = self.current_model.act(state,mask)
+        action = self.actor.forward(state,mask)
         return action
 
     ### Does the action and returns Next State, If terminal, Reward, Next Mask
@@ -116,33 +117,26 @@ class Driver():
     
     def TD_Loss(self):
         ### Samples batch from buffer memory
-        state,action,mask,reward,next_state,next_mask,terminal = self.buffer.sample(self.batch_size)
+        state,prob,val,action,mask,reward,terminal = self.buffer.sample(self.batch_size)
 
         ### Converts the variabls to tensors for processing by DDQN
         state      = Variable(FloatTensor(float32(state)))
-        mask      = Variable(FloatTensor(float32(mask)))
-        next_state = FloatTensor(float32(next_state))
-        action     = LongTensor(float32(action))
-        next_mask      = FloatTensor(float32(next_mask))
+        prob      =  FloatTensor(prob)
+        val       =  FloatTensor(val)
+        mask      = Variable(FloatTensor(float32(mask)))        
+        action     = LongTensor(float32(action))        
         reward     = FloatTensor(reward)
         done       = FloatTensor(terminal)
 
+        advantage=np.zeros(len(reward),dtype=np.float32)
+        for t in range(len(reward)-1):
+            discount=1
+            a_t=0
+            for k in range(t, len(reward)-1):
+                a_t+=discount*(reward[k]+self.gamma*val[k+1]*(1-int(done[k]))-val[k])
+                discount*=self.gamma*self.self.gae_lambda
 
-        ### Predicts Q value for present and next state with current and target model
-        q_values      = self.current_model(state,mask)
-        next_q_values = self.target_model(next_state,next_mask)
-        q_crt_values =  self.current_model(next_state,next_mask)
-        action_max=torch.Tensor([torch.argmax(q_val) for q_val in q_crt_values])
-
-        # Calculates Loss:
-        #    If not Terminal:
-        #        Loss = (reward + gamma*Q_val(next_state)) - Q_val(current_state)
-        #    If Terminal:
-        #        Loss = reward - Q_val(current_state)
-
-        q_value          = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
-        next_q_value     = torch.Tensor([next_q_values[i][int(action_max[i])] for i in range(action_max.shape[0])])
-        expected_q_value = reward + self.gamma * next_q_value * (1 - done)
+        
         loss = (q_value - expected_q_value.detach()).pow(2).mean()
         loss_print = loss.item()    
 
@@ -161,10 +155,10 @@ class Driver():
         path = "./pre-trained/dqn_dnn"+str(batch_no)+".pth"
         torch.save({
             'epoch': batch_no,
-            'current_state_dict': self.current_model.state_dict(),
-            'target_state_dict' : self.target_model.state_dict(),
+            'actor_state_dict': self.actor.state_dict(),
+            'critic_state_dict' : self.critic.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            'epsilon':self.current_model.epsilon
+            'epsilon':self.actor.epsilon
         }, path)
 
     def save_logs(self,batch_no,avg_reward,loss,wins):
@@ -177,7 +171,7 @@ class Driver():
                     "\t Wins: ", 
                     str(wins),
                     "\t Epsilon: ",
-                    str(self.current_model.epsilon)
+                    str(self.actor.epsilon)
         ]
         log_line = " ".join(res)
         print(log_line)
