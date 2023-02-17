@@ -1,0 +1,3 @@
+1 	Avg Reward:  0.1240234375 	 Loss:  1.5765413045883179 	 Wins:  0.3875968992248062 	 Epsilon_actor:  1 	 Epsilon_critic:  1
+2 	Avg Reward:  0.12109375 	 Loss:  1.6500219106674194 	 Wins:  0.09652509652509653 	 Epsilon_actor:  0.9 	 Epsilon_critic:  0.81
+3 	Avg Reward:  0.1339111328125 	 Loss:  2.303589105606079 	 Wins:  0.0999000999000999 	 Epsilon_actor:  0.9 	 Epsilon_critic:  0.81

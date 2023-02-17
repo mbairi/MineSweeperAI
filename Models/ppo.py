@@ -7,13 +7,12 @@ import numpy as np
 import random
 from torch.distributions.categorical import Categorical
 
-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Actor(nn.Module):
     
-    def __init__(self, inp_dim, action_dim):
+    def __init__(self, inp_dim, action_dim, cuda=True):
         super(Actor, self).__init__()
-        
+        self.device=torch.device("cuda" if torch.cuda.is_available() and cuda==True else "cpu")      
         self.epsilon = 1
         self.actor = nn.Sequential(
             nn.Linear(inp_dim, 128),
@@ -33,8 +32,8 @@ class Actor(nn.Module):
         
     def forward(self, x,mask):
         x=x/8
-        x=torch.FloatTensor(x).unsqueeze(0).to(device)
-        mask   = torch.FloatTensor(mask).unsqueeze(0).to(device)
+        x=torch.FloatTensor(x).unsqueeze(0).to(self.device)
+        mask   = torch.FloatTensor(mask).unsqueeze(0).to(self.device)
         dist = self.masked_softmax(self.actor(x),mask)
         dist = Categorical(dist)
         return dist
@@ -56,9 +55,9 @@ class Actor(nn.Module):
 
 class Critic(nn.Module):
     
-    def __init__(self, inp_dim):
+    def __init__(self, inp_dim, cuda=True):
         super(Critic, self).__init__()
-        
+        self.device=torch.device("cuda" if torch.cuda.is_available() and cuda==True else "cpu")
         self.epsilon = 1
         self.critic = nn.Sequential(
             nn.Linear(inp_dim, 128),
@@ -74,7 +73,7 @@ class Critic(nn.Module):
         
     def forward(self, x):
         x=x/8
-        x= torch.FloatTensor(x).unsqueeze(0).to(device)
+        x= torch.FloatTensor(x).unsqueeze(0).to(self.device)
         dist = self.critic(x)
         return dist
     
@@ -92,7 +91,35 @@ class Critic(nn.Module):
     #         action = indices[randno]
     #     return action
 
+class PPO(nn.Module):
+    def __init__(self, inp_dim, action_dim,cuda=True):
+        super(PPO, self).__init__()
+        self.device=torch.device("cuda" if torch.cuda.is_available() and cuda==True else "cpu")
+        self.epsilon = 1
+        self.actor=Actor(inp_dim, action_dim, cuda)
+        self.critic=Critic(inp_dim, cuda)
 
+    def act(self,state,mask):
+        bruh = random.random()
+        if bruh > self.epsilon:
+            state   = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+            mask   = torch.FloatTensor(mask).unsqueeze(0).to(self.device)
+            dist = self.actor(state,mask)
+            action = dist.sample()
+            action = torch.squeeze(action).item()
+        else:
+            indices = np.nonzero(mask)[0]
+            randno = random.randint(0,len(indices)-1)
+            action = indices[randno]
+        return action
+
+    def load_state(self,info):
+        self.actor.load_state_dict(info['actor_state_dict'])
+        self.critic.load_state_dict(info['critic_state_dict'])
+
+    
+        
+        
 class Buffer():
     def __init__(self,capacity):
         self.buffer = deque(maxlen = capacity)

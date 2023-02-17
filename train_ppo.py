@@ -51,6 +51,7 @@ logs: Win Rate, Reward, Loss and Epsilon are written to this file and can be vis
 '''
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device="cpu"
 print(device)
 
 class Driver():
@@ -156,8 +157,8 @@ class Driver():
 
         #SGD
         dist=self.actor(state,mask)
-        critic_value=self.critic(state).to(device)
-        critic_value=torch.squeeze(critic_value).to(device)
+        critic_value=self.critic(state)
+        critic_value=torch.squeeze(critic_value)
         new_probs=dist.log_prob(action)
         prob_ratio=new_probs.exp()/prob.exp()
         weighted_probs=advantage*prob_ratio
@@ -221,8 +222,8 @@ def main():
 
     driver = Driver(6,6,6,False)
     state = driver.env.state
-    epochs = 10000
-    save_every = 2000
+    epochs = 10
+    save_every = 10
     count = 0
     running_reward = 0 
     batch_no = 0

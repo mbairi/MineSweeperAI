@@ -10,13 +10,12 @@ from collections import deque
 import numpy as np
 import random
 
-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class DDQN(nn.Module):
 
-    def __init__(self, inp_dim, action_dim):
+    def __init__(self, inp_dim, action_dim,cuda=True):
         super(DDQN, self).__init__()
-
+        self.device=torch.device("cuda" if torch.cuda.is_available() and cuda==True else "cpu")
         self.epsilon = 1
         self.feature = nn.Sequential(
             nn.Linear(inp_dim, 128),
@@ -54,8 +53,8 @@ class DDQN(nn.Module):
     def act(self, state, mask):
         bruh = random.random()
         if bruh > self.epsilon:
-            state   = torch.FloatTensor(state).unsqueeze(0).to(device)
-            mask   = torch.FloatTensor(mask).unsqueeze(0).to(device)
+            state   = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+            mask   = torch.FloatTensor(mask).unsqueeze(0).to(self.device)
             q_value = self.forward(state,mask)
             # print(q_value)
             action  = q_value.max(1)[1].data[0].item()
@@ -64,6 +63,9 @@ class DDQN(nn.Module):
             randno = random.randint(0, len(indices) - 1)
             action = indices[randno]
         return action
+
+    def load_state(self,info):
+        self.load_state_dict(info['current_state_dict'])
 
 
 class Buffer():

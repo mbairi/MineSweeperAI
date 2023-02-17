@@ -6,16 +6,21 @@ import sys
 sys.path.insert(1,"./Models")
 from ddqn import  DDQN
 from dqn import DQN
+from ppo import PPO
+from AC0 import AC0
+ 
 from renderer import Render
 from game import MineSweeper
 from renderer import Render
 
+model_list={"DDQN":DDQN, "DQN":DQN, "PPO":PPO, "AC0":AC0}
 
 ### Preferably don't mess with the parameters for now.
 ### Class takes in only one parameter as initialization, render true or false
 class Tester():
-    def __init__(self,render_flag):
-        self.model = DDQN(36,36)
+    def __init__(self,render_flag,model_type):       
+        self.model_type=model_type
+        self.model = model_list[self.model_type](36,36,cuda=False)
         # self.model = DQN(36,36)
         self.render_flag = render_flag
         self.width = 6
@@ -23,7 +28,7 @@ class Tester():
         self.env = MineSweeper(self.width, self.height, 6)
         if (self.render_flag):
             self.renderer = Render(self.env.state)
-        self.load_models(1000)
+        self.load_models(100)
     
     def get_action(self,state):
         state = state.flatten()
@@ -32,10 +37,10 @@ class Tester():
         return action
 
     def load_models(self,number):
-        path = "pre-trained/ddqn_dnn"+str(number)+".pth"
+        path = "pre-trained/"+self.model_type.lower()+"_dnn"+str(number)+".pth"
         # path = "pre-trained/dqn_dnn"+str(number)+".pth"
         dict = torch.load(path)
-        self.model.load_state_dict(dict['current_state_dict'])
+        self.model.load_state(dict)
         self.model.epsilon = 0
 
     def do_step(self, action):
@@ -51,8 +56,8 @@ class Tester():
 
 
 ### Tests winrate in "games_no" games
-def win_tester(games_no):
-    tester = Tester(False)
+def win_tester(games_no,model_type):
+    tester = Tester(False,model_type)
     state = tester.env.state
     mask = tester.env.fog
     wins = 0
@@ -75,13 +80,13 @@ def win_tester(games_no):
             step = 0
 
     ### First_loss is subtracted so that the games with first pick as bomb are subtracted
-    print("Model: DDQN")
+    print("Model: {}".format(model_type))
     print("Win Rate: "+str(wins*100/(games_no)))
     print("Win Rate excluding First Loss: "+str(wins*100/(games_no-first_loss)))
 
 
-def slow_tester():
-    tester = Tester(True)
+def slow_tester(model_type):    
+    tester = Tester(True,model_type)
     state = tester.env.state
     count = 0
     start = time.perf_counter()
@@ -110,6 +115,7 @@ def slow_tester():
 
 
 def main():
-    win_tester(1000)
-    # slow_tester()
+    model_type="AC0"
+    win_tester(1000,model_type)
+    # slow_tester(model_type)
 main()

@@ -69,7 +69,8 @@ class Driver():
         return next_state, terminal, reward, next_fog
 
     def save_checkpoints(self, batch_no):
-        path = "./pre-trained/AC0" + str(batch_no) + ".pth"
+        # path = "./pre-trained/AC0" + str(batch_no) + ".pth"
+        path = "./pre-trained/ac0_dnn" + str(batch_no) + ".pth"
         torch.save({
             'epoch': batch_no,
             'policy_state_dict': self.policy_network.state_dict(),
@@ -92,7 +93,7 @@ class Driver():
 
 def main():
     driver = Driver(6, 6, 3, False)
-    save_every = 50000
+    save_every = 100
     wins = deque([0]*100)
     for episode in tqdm(range(NUM_EPISODES)):
         if np.mean(wins) > 0.9:
