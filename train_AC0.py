@@ -112,8 +112,8 @@ class Driver():
         path = "./pre-trained/ac0_dnn" + str(batch_no) + ".pth"
         torch.save({
             'epoch': batch_no,
-            'policy_state_dict': self.policy_network.state_dict(),
-            'statevalue_state_dict':self.stateval_network.state_dict()
+            'policy_state_dict': self.model.policy.state_dict(),
+            'statevalue_state_dict':self.model.value.state_dict()
         }, path)
 
     def save_logs(self, batch_no, avg_reward, policy_loss, val_loss,  wins):
