@@ -49,8 +49,8 @@ class MineSweeper():
         self.state = add(self.state, (self.fog - 1))
 
     def flatten2grid(self, loc):
-        row = int(loc / self.grid_width)
-        col = int(loc % self.grid_width)
+        row = loc // self.grid_width
+        col = loc % self.grid_width
         return row, col
 
     def grid2flatten(self, row, col):
