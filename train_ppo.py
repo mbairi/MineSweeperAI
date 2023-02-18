@@ -66,12 +66,18 @@ class Driver():
         self.actor = Actor(self.box_count,self.box_count).to(device)
         self.critic = Critic(self.box_count).to(device)
         # self.target_model.eval()
-        self.optimizer_actor = torch.optim.Adam(self.actor.parameters(),lr=0.003,weight_decay=1e-5)
-        self.optimizer_critic = torch.optim.Adam(self.critic.parameters(),lr=0.003,weight_decay=1e-5)
-        self.scheduler_actor = torch.optim.lr_scheduler.StepLR(self.optimizer_actor,step_size=2000,gamma=0.95)
-        self.scheduler_critic = torch.optim.lr_scheduler.StepLR(self.optimizer_critic,step_size=2000,gamma=0.95)
+        # self.optimizer_actor = torch.optim.Adam(self.actor.parameters(),lr=0.003,weight_decay=1e-5)
+        # self.optimizer_critic = torch.optim.Adam(self.critic.parameters(),lr=0.003,weight_decay=1e-5)
+
+        self.optimizer = torch.optim.Adam([
+                        {'params': self.actor.parameters(), 'lr': 0.003, 'weight_decay': 1e-5},
+                        {'params': self.critic.parameters(), 'lr': 0.003, 'weight_decay': 1e-5}
+                    ])
+        self.scheduler=torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=2000,gamma=0.95)
+        # self.scheduler_actor = torch.optim.lr_scheduler.StepLR(self.optimizer_actor,step_size=2000,gamma=0.95)
+        # self.scheduler_critic = torch.optim.lr_scheduler.StepLR(self.optimizer_critic,step_size=2000,gamma=0.95)
         # self.target_model.load_state_dict(self.current_model.state_dict())
-        self.buffer = Buffer(100000)
+        self.buffer = Buffer(10000)
         self.gamma = 0.99
         self.gae_lambda = 0.95
         self.render_flag = render_flag
@@ -82,6 +88,7 @@ class Driver():
         self.batch_size = 4096
         self.tau = 5e-5
         self.policy_clip=0.2
+        self.mse=nn.MSELoss()
         self.log = open("./Logs/ppo_log.txt",'w')
 
         if(self.render_flag):
@@ -93,8 +100,7 @@ class Driver():
         weights = torch.load(path)
         self.actor.load_state_dict(weights['actor_state_dict'])
         self.critic.load_state_dict(weights['critic_state_dict'])
-        self.optimizer_actor.load_state_dict(weights['optimizer_actor_state_dict'])
-        self.optimizer_critic.load_state_dict(weights['optimizer_critic_state_dict'])        
+        self.optimizer.load_state_dict(weights['optimizer_state_dict'])      
         self.actor.epsilon = weights['epsilon_actor']
         self.critic.epsilon = weights['epsilon_critic']
 
@@ -111,6 +117,7 @@ class Driver():
         probs = torch.squeeze(dist.log_prob(action)).item()
         action = torch.squeeze(action).item()
         value = torch.squeeze(value).item()
+        
         return action, probs, value
 
     ### Does the action and returns Next State, If terminal, Reward, Next Mask
@@ -134,10 +141,11 @@ class Driver():
     
     def TD_Loss(self):
         ### Samples batch from buffer memory
-        state,prob,val,action,mask,reward,terminal = self.buffer.sample(self.batch_size)
+        state,next_state,prob,val,action,mask,reward,terminal = self.buffer.sample(self.batch_size)
 
         ### Converts the variabls to tensors for processing by DDQN
         state      = Variable(FloatTensor(float32(state))).to(device)
+        next_state      = Variable(FloatTensor(float32(next_state))).to(device)
         prob      =  FloatTensor(prob).to(device)
         val       =  FloatTensor(val).to(device)
         mask      = Variable(FloatTensor(float32(mask))).to(device)        
@@ -145,42 +153,47 @@ class Driver():
         reward     = FloatTensor(reward).to(device)
         done       = FloatTensor(terminal).to(device)
 
-        advantage=np.zeros(len(reward),dtype=np.float32)
-        for t in range(len(reward)-1):
-            discount=1
-            a_t=0
-            for k in range(t, len(reward)-1):
-                a_t+=discount*(reward[k].item()+self.gamma*val[k+1].item()*(1-int(done[k].item()))-val[k].item())
-                discount*=self.gamma*self.gae_lambda
-            advantage[t]=a_t
-        advantage=torch.tensor(advantage).to(device)
+        reward = (reward - reward.mean())/(reward.std() + 1e-10)
+        with torch.no_grad():
+            target_v = reward + self.gamma * self.critic(next_state)
+
+        # advantage=np.zeros(len(reward),dtype=np.float32)
+        # for t in range(len(reward)-1):
+        #     discount=1
+        #     a_t=0
+        #     for k in range(t, len(reward)-1):
+        #         a_t+=discount*(reward[k].item()+self.gamma*val[k+1].item()*(1-int(done[k].item()))-val[k].item())
+        #         discount*=self.gamma*self.gae_lambda
+        #     advantage[t]=a_t
+        # advantage=torch.tensor(advantage).to(device)
+
+        advantage = (target_v - self.critic(state)).detach()
 
         #SGD
         dist=self.actor(state,mask)
         critic_value=self.critic(state)
         critic_value=torch.squeeze(critic_value)
         new_probs=dist.log_prob(action)
-        prob_ratio=new_probs.exp()/prob.exp()
+        prob_ratio = torch.exp(new_probs - prob)
+
         weighted_probs=advantage*prob_ratio
         weighted_clipped_probs=torch.clamp(prob_ratio, 1-self.policy_clip, 1+self.policy_clip)*advantage
+        
         actor_loss = -torch.min(weighted_probs, weighted_clipped_probs).mean()
         returns = advantage + val
-        critic_loss = (returns-critic_value)**2
-        critic_loss=critic_loss.mean()
+        critic_loss = self.mse(returns,critic_value)
+        critic_loss = critic_loss.mean()
 
         total_loss=actor_loss+0.5*critic_loss
 
         loss_print = total_loss.item()    
 
         # Propagates the Loss
-        self.optimizer_actor.zero_grad()
-        self.optimizer_critic.zero_grad()
+        self.optimizer.zero_grad()
         total_loss.backward()
 
-        self.optimizer_actor.step()
-        self.optimizer_critic.step()
-        self.scheduler_critic.step()
-        self.scheduler_actor.step()
+        self.optimizer.step()
+        self.scheduler.step()
 
         # for target_param, local_param in zip(self.actor.parameters(), self.critic.parameters()):
         #     target_param.data.copy_(self.tau*local_param.data + (1.0-self.tau)*target_param.data)
@@ -192,8 +205,7 @@ class Driver():
             'epoch': batch_no,
             'actor_state_dict': self.actor.state_dict(),
             'critic_state_dict' : self.critic.state_dict(),
-            'optimizer_actor_state_dict': self.optimizer_actor.state_dict(),
-            'optimizer_critic_state_dict': self.optimizer_critic.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
             'epsilon_actor':self.actor.epsilon,
             'epsilon_critic':self.critic.epsilon
         }, path)
@@ -222,8 +234,8 @@ def main():
 
     driver = Driver(6,6,6,False)
     state = driver.env.state
-    epochs = 10
-    save_every = 10
+    epochs = 10000
+    save_every = 2000
     count = 0
     running_reward = 0 
     batch_no = 0
@@ -237,7 +249,7 @@ def main():
         action, probs, value = driver.get_action(state,mask)
         next_state,terminal,reward,_ = driver.do_step(action)
 
-        driver.buffer.push(state.flatten(),probs, value, action,mask.flatten(),reward,terminal)
+        driver.buffer.push(state.flatten(),next_state.flatten(),probs, value, action,mask.flatten(),reward,terminal)
         state = next_state
         count+=1
         running_reward+=reward

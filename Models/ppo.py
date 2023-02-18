@@ -12,13 +12,14 @@ class Actor(nn.Module):
     
     def __init__(self, inp_dim, action_dim, cuda=True):
         super(Actor, self).__init__()
-        self.device=torch.device("cuda" if torch.cuda.is_available() and cuda==True else "cpu")      
+        self.device=torch.device("cuda" if torch.cuda.is_available() and cuda==True else "cpu")     
+        self.device="cpu" 
         self.epsilon = 1
         self.actor = nn.Sequential(
             nn.Linear(inp_dim, 128),
-            nn.ReLU(),
+            nn.Tanh(),
             nn.Linear(128, 128),
-            nn.ReLU(),
+            nn.Tanh(),
             nn.Linear(128,action_dim)
         )        
 
@@ -58,12 +59,13 @@ class Critic(nn.Module):
     def __init__(self, inp_dim, cuda=True):
         super(Critic, self).__init__()
         self.device=torch.device("cuda" if torch.cuda.is_available() and cuda==True else "cpu")
+        self.device="cpu" 
         self.epsilon = 1
         self.critic = nn.Sequential(
             nn.Linear(inp_dim, 128),
-            nn.ReLU(),
+            nn.Tanh(),
             nn.Linear(128, 128),
-            nn.ReLU(),
+            nn.Tanh(),
             nn.Linear(128,1)
         )        
 
@@ -95,6 +97,7 @@ class PPO(nn.Module):
     def __init__(self, inp_dim, action_dim,cuda=True):
         super(PPO, self).__init__()
         self.device=torch.device("cuda" if torch.cuda.is_available() and cuda==True else "cpu")
+        self.device="cpu" 
         self.epsilon = 1
         self.actor=Actor(inp_dim, action_dim, cuda)
         self.critic=Critic(inp_dim, cuda)
@@ -116,6 +119,8 @@ class PPO(nn.Module):
     def load_state(self,info):
         self.actor.load_state_dict(info['actor_state_dict'])
         self.critic.load_state_dict(info['critic_state_dict'])
+        self.actor.epsilon = info['epsilon_actor']
+        self.critic.epsilon = info['epsilon_critic']
 
     
         
@@ -124,9 +129,9 @@ class Buffer():
     def __init__(self,capacity):
         self.buffer = deque(maxlen = capacity)
 
-    def push(self,state,probs,val,action,mask,reward,terminal):
-        self.buffer.append((state,probs,val,action,mask,reward,terminal))
+    def push(self,state,next_state,probs,val,action,mask,reward,terminal):
+        self.buffer.append((state,next_state,probs,val,action,mask,reward,terminal))
 
     def sample(self,batch_size):
-        states,probs,vals,actions,masks,rewards,terminals = zip(*random.sample(self.buffer, batch_size))
-        return states,probs,vals,actions,masks,rewards,terminals
+        states,next_state,probs,vals,actions,masks,rewards,terminals = zip(*random.sample(self.buffer, batch_size))
+        return states,next_state,probs,vals,actions,masks,rewards,terminals

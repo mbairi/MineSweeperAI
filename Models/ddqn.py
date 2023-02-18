@@ -66,6 +66,7 @@ class DDQN(nn.Module):
 
     def load_state(self,info):
         self.load_state_dict(info['current_state_dict'])
+        self.epsilon = info['epsilon']
 
 
 class Buffer():
