@@ -1,19 +1,19 @@
 import time
 import torch
 import torch.nn.functional as F
-from Models.AC0 import PolicyNetwork, StateValueNetwork, select_action
+from Models.AC0 import select_action, AC0, Buffer
 import torch.optim as optim
 from tqdm import tqdm
 import numpy as np
 from collections import deque
 from game import MineSweeper
 from renderer import Render
+from numpy import float32
+from torch.autograd import Variable
+from torch import FloatTensor,LongTensor
 
 #discount factor for future utilities
-DISCOUNT_FACTOR = 0.99
-
-#number of episodes to run
-NUM_EPISODES = 10000000
+DISCOUNT_FACTOR = 0.9
 
 #max steps per episode
 MAX_STEPS = 50
@@ -22,7 +22,7 @@ MAX_STEPS = 50
 SOLVED_SCORE = 0.8
 
 #device to run model on
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 class Driver():
 
@@ -34,26 +34,23 @@ class Driver():
         self.box_count = width * height
         self.render_flag = render_flag
         self.env = MineSweeper(self.width, self.height, self.bomb_no)
-        self.policy_network = PolicyNetwork(width*height, width*height).to(DEVICE)
-        self.stateval_network = StateValueNetwork(width*height).to(DEVICE)
+        self.model = AC0(self.width*self.height, self.width*self.height)
         # Init optimizer
-        self.policy_optimizer = optim.SGD(self.policy_network.parameters(), lr=0.01)
-        self.stateval_optimizer = optim.SGD(self.stateval_network.parameters(), lr=0.01)
+        self.policy_optimizer = optim.SGD(self.model.policy.parameters(), lr=0.001)
+        self.stateval_optimizer = optim.SGD(self.model.value.parameters(), lr=0.001)
         self.log = open("./Logs/AC0_log.txt", 'w')
 
-        # track scores
-        self.scores = []
-        # track recent scores
-        self.recent_scores = deque(maxlen=100)
+        self.buffer = Buffer(100000)
+        self.batch_size = 4096
 
         if (self.render_flag):
             self.Render = Render(self.env.state)
 
 
-    def get_action(self, network, state, mask):
+    def get_action(self, state, mask):
         state = state.flatten()  # vector of len = w * h * 1
         mask = mask.flatten()
-        return select_action(network, state, mask)
+        return self.model.act(state, mask)
 
     ### Does the action and returns Next State, If terminal, Reward, Next Mask
     def step(self, action):
@@ -68,6 +65,48 @@ class Driver():
         next_fog = 1 - self.env.fog
         return next_state, terminal, reward, next_fog
 
+    def Loss(self):
+
+        self.model.train()
+        ### Samples batch from buffer memory
+        state, action, lp, mask, reward, next_state, next_mask, terminal = self.buffer.sample(self.batch_size)
+        ### Converts the variabls to tensors for processing by DDQN
+        state = FloatTensor(float32(state)).to(device)
+        next_state = FloatTensor(float32(next_state)).to(device)
+        reward = FloatTensor(reward).unsqueeze(1).to(device)
+        lp = FloatTensor(lp).unsqueeze(1).to(device)
+
+
+        # get state value of current state
+        # state_tensor = state.float().unsqueeze(0).to(device)
+        state_val = self.model.value(state)
+
+        # get state value of next state
+        # next_state_tensor = next_state.float().unsqueeze(0).to(device)
+        new_state_val = self.model.value(next_state)
+
+        # calculate value function loss with MSE
+        val_loss = F.mse_loss(reward + DISCOUNT_FACTOR * new_state_val, state_val)
+        val_loss *= DISCOUNT_FACTOR
+
+        # calculate policy loss
+        advantage = torch.mean(- lp * (reward + DISCOUNT_FACTOR * new_state_val - state_val))
+        policy_loss = advantage * DISCOUNT_FACTOR
+
+        # Backpropagate policy
+        self.policy_optimizer.zero_grad()
+        policy_loss.backward(retain_graph=True)
+        self.policy_optimizer.step()
+
+        # Backpropagate value
+        self.stateval_optimizer.zero_grad()
+        val_loss.backward()
+        self.stateval_optimizer.step()
+
+        self.model.eval()
+
+        return policy_loss.item(), val_loss.item()
+
     def save_checkpoints(self, batch_no):
         # path = "./pre-trained/AC0" + str(batch_no) + ".pth"
         path = "./pre-trained/ac0_dnn" + str(batch_no) + ".pth"
@@ -77,103 +116,74 @@ class Driver():
             'statevalue_state_dict':self.stateval_network.state_dict()
         }, path)
 
-    def save_logs(self, batch_no, avg_reward, wins_mean):
+    def save_logs(self, batch_no, avg_reward, policy_loss, val_loss,  wins):
         res = [
             str(batch_no),
             "\tAvg Reward: ",
             str(avg_reward),
-            "Avg wins: ",
-            str(wins_mean),
+            "\t Policy Loss: ",
+            str(policy_loss),
+            "\t Val Loss: ",
+            str(val_loss),
+            "\t Wins: ",
+            str(wins),
         ]
         log_line = " ".join(res)
-        if wins_mean > 0.75:
-            print(log_line)
+        print(log_line)
         self.log.write(log_line + "\n")
         self.log.flush()
 
 def main():
-    driver = Driver(6, 6, 3, False)
-    save_every = 100
-    wins = deque([0]*100)
-    for episode in tqdm(range(NUM_EPISODES)):
-        if np.mean(wins) > 0.9:
-            print(0.9)
-            break
+    driver = Driver(9, 9, 10, False)
+    state = driver.env.state
+    save_every = 2000
+    epochs = 10000
+    batch_no = 0
+    count = 0
+    wins = 0
+    running_reward = 0
+    total = 0
 
-        driver.env.reset()
-        # init variables
-        state = driver.env.state
-        done = False
-        score = 0
-        win = 0
-        I = 1
+    while (batch_no < epochs):
 
-        # run episode, update online
-        for step in range(MAX_STEPS):
+        # simple state action reward loop and writes the actions to buffer
+        mask = 1 - driver.env.fog
+        action, lp = driver.get_action(state, mask)
+        next_state, terminal, reward, _ = driver.step(action)
+        driver.buffer.push(state.flatten(), action, lp, mask.flatten(), reward, next_state.flatten(),
+                           (1 - driver.env.fog).flatten(), terminal)
+        state = next_state
+        count += 1
+        running_reward += reward
 
-            mask = 1 - driver.env.fog
-            # get action and log probability
-            action, lp = driver.get_action(driver.policy_network, state, mask)
+        # Used for calculating winrate for each batch
+        if (terminal):
+            if (reward == 1):
+                wins += 1
+            driver.env.reset()
+            state = driver.env.state
+            mask = driver.env.fog
+            total += 1
 
-            # step with action
-            new_state, done, reward, next_fog = driver.step(action)
+        if count == driver.batch_size:
 
-            # update episode score
-            score += reward
+            policy_loss, val_loss = driver.Loss()
 
-            # get state value of current state
-            state_tensor = torch.from_numpy(state).float().unsqueeze(0).to(DEVICE)
-            state_val = driver.stateval_network(state_tensor.flatten())
+            # Calculates metrics
+            batch_no += 1
+            avg_reward = running_reward / driver.batch_size
+            wins = wins * 100 / total
+            driver.save_logs(batch_no, avg_reward, policy_loss, val_loss, wins)
 
-            # get state value of next state
-            new_state_tensor = torch.from_numpy(new_state).float().unsqueeze(0).to(DEVICE)
-            new_state_val = driver.stateval_network(new_state_tensor.flatten())
+            # Resets metrics for next batch calculation
+            running_reward = 0
+            count = 0
+            wins = 0
+            total = 0
 
-            # if terminal state, next state val is 0
-            if done:
-                new_state_val = torch.tensor([0]).float().unsqueeze(0).to(DEVICE)
-
-            # calculate value function loss with MSE
-            val_loss = F.mse_loss(reward + DISCOUNT_FACTOR * new_state_val, state_val)
-            val_loss *= I
-
-            # calculate policy loss
-            advantage = reward + DISCOUNT_FACTOR * new_state_val.item() - state_val.item()
-            policy_loss = -lp * advantage
-            policy_loss *= I
-
-            # Backpropagate policy
-            driver.policy_optimizer.zero_grad()
-            policy_loss.backward(retain_graph=True)
-            driver.policy_optimizer.step()
-
-            # Backpropagate value
-            driver.stateval_optimizer.zero_grad()
-            val_loss.backward()
-            driver.stateval_optimizer.step()
-
-            if done:
-                if (reward == 1):
-                    win += 1
-                break
-
-            # move into new state, discount I
-            state = new_state
-            I *= DISCOUNT_FACTOR
-
-        wins.append(win)
-        wins.popleft()
-
-        # append episode score
-        driver.scores.append(score)
-        driver.recent_scores.append(score)
-
-        if episode % 100 == 0:
-            driver.save_logs(episode, np.mean(driver.recent_scores), np.mean(wins))
-
-        if episode % save_every == 0:
-            driver.save_checkpoints(episode)
-
+            # Saves the model details to "./pre-trained" if 1000 batches have been processed
+            if (batch_no % save_every == 0):
+                driver.save_checkpoints(batch_no)
 
 
 if __name__ == "__main__":
