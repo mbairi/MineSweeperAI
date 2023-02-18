@@ -34,6 +34,7 @@ def main():
                 _, terminal, reward = play.do_step(x, y)
                 print(reward)
                 print(play.env.uncovered_count)
+                play.renderer.draw()
                 if (terminal):
                     if (reward == -1):
                         print("EZ LOSS")
