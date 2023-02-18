@@ -2,6 +2,35 @@
 
 This project was created from scratch using Python,Numpy to create the game logic, pygame to render the states and PyTorch to train the AI. It has given satisfactory results with the now dated DQN algorithm.<br/>
 
+# Changelog
+
+### - 02.18 by Xiao
+
+**More realistic rule sets are now added!** 
+
+Instead of stupid initialization of bomb locations while reset, we've added two more possible rule set: 
+
+- Windows XP rule set: the bomb is never located at the square of the first click (rules out 1 square)
+- Windows 7 rule set: the bomb is never located at nor around the square of the first click (rules out 9 squares) 
+
+**Try it out and have fun!** Just run `playable.py` to discover the Windows 7 rule set.
+
+In order to use new rule sets in your code, simply add one more parameter `rule` every time creating new instances of the `MinsSweeper()` class from `game.py`. 
+
+Possible keywords are `default` (stupid initialization), `winxp` (Windows XP rule set) and `win7` (Windows 7 rule set). 
+
+For example, `env = MineSweeper(width=10, height=10, bomb_no=9, rule='win7')`.
+
+We recommend you not to use `default` any longer with the benefit of being able to compare your performance with the theoretical baseline below. 
+
+|difficulty|Windows XP rule|Windows 7 rule|
+|---|---|---|
+|easy (9*9 grid, 10 bombs)|91.63%|97.05%|
+|medium (16*16 grid, 40 bombs)|78.04%|89.11%|
+|hard (16*30 grid, 99 bombs)|40.07%|52.98%|
+
+c.f. https://github.com/ztxz16/Mine
+
 # Details:
 These are just to give you a rough overview of the project, more details about functions and variables can be seen in the <b>comments of my code</b><br/>
 

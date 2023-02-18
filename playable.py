@@ -6,10 +6,10 @@ from renderer import Render
 
 class Play():
     def __init__(self):
-        self.width = 20
-        self.height = 20
-        self.bombs = 20
-        self.env = MineSweeper(self.width, self.height, self.bombs)
+        self.width = 5
+        self.height = 5
+        self.bombs = 5
+        self.env = MineSweeper(self.width, self.height, self.bombs, rule='win7')
         self.renderer = Render(self.env.state)
         self.renderer.state = self.env.state
 
@@ -42,7 +42,7 @@ def main():
                     play.env.reset()
                     play.renderer.state = play.env.state
                     play.renderer.draw()
-                    print(play.env.grid)
+                print(play.env.grid)
 
 
 main()
