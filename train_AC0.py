@@ -15,10 +15,7 @@ from torch import FloatTensor,LongTensor
 #discount factor for future utilities
 DISCOUNT_FACTOR = 0.9
 
-BATCH_SIZE = 2
-
-#score agent needs for environment to be solved
-SOLVED_SCORE = 0.8
+BATCH_SIZE = 4096
 
 #device to run model on
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -33,11 +30,11 @@ class Driver():
         self.box_count = width * height
         self.render_flag = render_flag
         self.env = MineSweeper(self.width, self.height, self.bomb_no)
-        self.envs = [MineSweeper(self.width, self.height, self.bomb_no)] * BATCH_SIZE
+        self.envs = [MineSweeper(self.width, self.height, self.bomb_no,rule='win7') for b in range(BATCH_SIZE)]
         self.model = AC0(self.width*self.height, self.width*self.height)
         # Init optimizer
-        self.policy_optimizer = optim.SGD(self.model.policy.parameters(), lr=0.0001)
-        self.stateval_optimizer = optim.SGD(self.model.value.parameters(), lr=0.0001)
+        self.policy_optimizer = optim.SGD(self.model.policy.parameters(), lr=0.001)
+        self.stateval_optimizer = optim.SGD(self.model.value.parameters(), lr=0.001)
         self.log = open("./Logs/AC0_log.txt", 'w')
 
         self.buffer = Buffer(100000)
@@ -93,7 +90,7 @@ class Driver():
         next_states, terminals, rewards, next_fogs = [], [], [], []
         for k in range(len(action)):
             next_state, terminal, reward = self.envs[k].choose(ii[k], jj[k])
-            next_fog = 1 - self.env.fog
+            next_fog = 1 - self.envs[k].fog
             next_states.append(next_state)
             terminals.append(terminal)
             rewards.append(reward)
@@ -119,7 +116,7 @@ class Driver():
 
         # Backpropagate policy
         self.policy_optimizer.zero_grad()
-        policy_loss.backward(retain_graph=True)
+        policy_loss.backward(retain_graph = True)
         self.policy_optimizer.step()
 
         # Backpropagate value
@@ -156,12 +153,12 @@ class Driver():
         self.log.flush()
 
 def main():
-    driver = Driver(9, 9, 3, False)
+    driver = Driver(6, 6, 6, False)
     save_every = 2000
     epochs = 100000
-    wins = [deque(maxlen=100)] * BATCH_SIZE
+    wins = [deque(maxlen=100) for b in range(BATCH_SIZE)]
     for t in range(BATCH_SIZE):
-        wins[t].append(1)
+        wins[t].append(0)
 
     for epoch in range(epochs):
 
@@ -177,12 +174,11 @@ def main():
         policy_loss, val_loss = driver.Loss(state, lp, reward, next_state, terminal)
 
         for t in range(BATCH_SIZE):
-            if terminal[t].item():
-                if reward[t].item() > 0.5:
-                    wins[t].append(1)
-                else:
-                    wins[t].append(0)
-        print(reward)
+            if reward[t].item() > 0.8:
+                wins[t].append(1)
+            elif reward[t].item() < -0.8:
+                wins[t].append(0)
+
         driver.save_logs(epoch, reward.float().mean().item(), policy_loss, val_loss, np.mean([np.mean(win) for win in wins]))
 
         # Saves the model details to "./pre-trained" if 1000 batches have been processed

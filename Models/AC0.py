@@ -109,8 +109,8 @@ class AC0(nn.Module):
     def act(self, state, mask):
         bruh = random.random()
         if bruh > self.epsilon:
-            state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-            mask = torch.FloatTensor(mask).unsqueeze(0).to(self.device)
+            # state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+            # mask = torch.FloatTensor(mask).unsqueeze(0).to(self.device)
             action, prob = select_action(self.policy, state, mask)
         else:
             indices = np.nonzero(mask)[0]
@@ -151,7 +151,8 @@ class AC0(nn.Module):
 
 
     def load_state(self, info):
-        self.network.load_state_dict(info['policy_state_dict'])
+        self.policy.load_state_dict(info['policy_state_dict'])
+        self.value.load_state_dict(info['statevalue_state_dict'])
 
 class Buffer():
     def __init__(self, capacity):
