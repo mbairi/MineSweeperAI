@@ -102,7 +102,7 @@ class AC0(nn.Module):
     def __init__(self, inp_dim, action_dim, cuda=True):
         super(AC0, self).__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() and cuda == True else "cpu")
-        self.epsilon = 1
+        self.epsilon = 0.2
         self.policy = PolicyNetwork(inp_dim, action_dim, cuda)
         self.value = StateValueNetwork(inp_dim)
 
@@ -119,6 +119,36 @@ class AC0(nn.Module):
             prob = 1.0/len(indices)
 
         return action, prob
+
+    def act_tensor(self, state, mask):
+        bruh = random.random()
+        if bruh > self.epsilon:
+            action, prob = self.select_action_tensor(state, mask)
+        else:
+            action = []
+            prob = []
+            for m in mask:
+                indices = np.nonzero(m).squeeze()
+                randno = random.randint(0, len(indices) - 1)
+                action.append( indices[randno])
+                prob.append(1.0/len(indices))
+        return torch.tensor(action), torch.tensor(prob)
+
+    def select_action_tensor(self, state, mask):
+        """
+
+        :param state: tensor[B, obs] float
+        :param mask: tensor[B, obs]  0/1
+        :return: action : tensor[B], int
+                 m.log_prob(action) tensor[B], float
+        """
+        action_probs = self.policy(state.float())
+        m = Categorical(masked_softmax(action_probs, mask))
+        action = m.sample()
+        lps = m.log_prob(action)
+        return action, lps
+
+
 
     def load_state(self, info):
         self.network.load_state_dict(info['policy_state_dict'])

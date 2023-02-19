@@ -15,8 +15,7 @@ from torch import FloatTensor,LongTensor
 #discount factor for future utilities
 DISCOUNT_FACTOR = 0.9
 
-#max steps per episode
-MAX_STEPS = 50
+BATCH_SIZE = 2
 
 #score agent needs for environment to be solved
 SOLVED_SCORE = 0.8
@@ -34,14 +33,15 @@ class Driver():
         self.box_count = width * height
         self.render_flag = render_flag
         self.env = MineSweeper(self.width, self.height, self.bomb_no)
+        self.envs = [MineSweeper(self.width, self.height, self.bomb_no)] * BATCH_SIZE
         self.model = AC0(self.width*self.height, self.width*self.height)
         # Init optimizer
-        self.policy_optimizer = optim.SGD(self.model.policy.parameters(), lr=0.001)
-        self.stateval_optimizer = optim.SGD(self.model.value.parameters(), lr=0.001)
+        self.policy_optimizer = optim.SGD(self.model.policy.parameters(), lr=0.0001)
+        self.stateval_optimizer = optim.SGD(self.model.value.parameters(), lr=0.0001)
         self.log = open("./Logs/AC0_log.txt", 'w')
 
         self.buffer = Buffer(100000)
-        self.batch_size = 4096
+        self.batch_size = BATCH_SIZE
 
         if (self.render_flag):
             self.Render = Render(self.env.state)
@@ -51,6 +51,17 @@ class Driver():
         state = state.flatten()  # vector of len = w * h * 1
         mask = mask.flatten()
         return self.model.act(state, mask)
+
+    def get_action_tensor(self, state, mask):
+        """
+        Batched version of get action
+        :param state: tensor[B, w, h]
+        :param mask: tensor[B, w, h]
+        :return: tensor[B, action
+        """
+        state = state.flatten(1)  # tensor[B, w * h]
+        mask = mask.flatten(1) # tensor[B, w * h]
+        return self.model.act_tensor(state, mask)
 
     ### Does the action and returns Next State, If terminal, Reward, Next Mask
     def step(self, action):
@@ -65,32 +76,45 @@ class Driver():
         next_fog = 1 - self.env.fog
         return next_state, terminal, reward, next_fog
 
-    def Loss(self):
+    def step_tensor(self, action):
+        """
 
-        self.model.train()
-        ### Samples batch from buffer memory
-        state, action, lp, mask, reward, next_state, next_mask, terminal = self.buffer.sample(self.batch_size)
-        ### Converts the variabls to tensors for processing by DDQN
-        state = FloatTensor(float32(state)).to(device)
-        next_state = FloatTensor(float32(next_state)).to(device)
-        reward = FloatTensor(reward).unsqueeze(1).to(device)
-        lp = FloatTensor(lp).unsqueeze(1).to(device)
+        :param action: tensor[B]
+        :return:
+        """
+        ii = np.array(action // self.width)
+        jj = np.array(action % self.width)  # array [B]
+        if self.render_flag:
+            self.Render.state = self.envs[0].state
+            self.Render.draw()
+            self.Render.bugfix()
+            time.sleep(0.5)
+
+        next_states, terminals, rewards, next_fogs = [], [], [], []
+        for k in range(len(action)):
+            next_state, terminal, reward = self.envs[k].choose(ii[k], jj[k])
+            next_fog = 1 - self.env.fog
+            next_states.append(next_state)
+            terminals.append(terminal)
+            rewards.append(reward)
+            next_fogs.append(next_fog)
+
+        next_states, terminals, rewards, next_fogs = torch.tensor(next_states), \
+            torch.tensor(terminals), torch.tensor(rewards), torch.tensor(next_fogs)
+        return next_states, terminals, rewards, next_fogs
+
+    def Loss(self, state, lp, reward, next_state, terminal):
 
 
-        # get state value of current state
-        # state_tensor = state.float().unsqueeze(0).to(device)
-        state_val = self.model.value(state)
-
-        # get state value of next state
-        # next_state_tensor = next_state.float().unsqueeze(0).to(device)
-        new_state_val = self.model.value(next_state)
+        state_val = self.model.value(state.flatten(1).float())
+        new_state_val = self.model.value(next_state.flatten(1).float())
 
         # calculate value function loss with MSE
-        val_loss = F.mse_loss(reward + DISCOUNT_FACTOR * new_state_val, state_val)
+        val_loss = F.mse_loss(reward + DISCOUNT_FACTOR * new_state_val * (1-terminal.int()), state_val)
         val_loss *= DISCOUNT_FACTOR
 
         # calculate policy loss
-        advantage = torch.mean(- lp * (reward + DISCOUNT_FACTOR * new_state_val - state_val))
+        advantage = torch.mean(- lp * (reward + (DISCOUNT_FACTOR * new_state_val - state_val)*(1-terminal.int())))
         policy_loss = advantage * DISCOUNT_FACTOR
 
         # Backpropagate policy
@@ -102,8 +126,6 @@ class Driver():
         self.stateval_optimizer.zero_grad()
         val_loss.backward()
         self.stateval_optimizer.step()
-
-        self.model.eval()
 
         return policy_loss.item(), val_loss.item()
 
@@ -134,56 +156,38 @@ class Driver():
         self.log.flush()
 
 def main():
-    driver = Driver(9, 9, 10, False)
-    state = driver.env.state
+    driver = Driver(9, 9, 3, False)
     save_every = 2000
-    epochs = 10000
-    batch_no = 0
-    count = 0
-    wins = 0
-    running_reward = 0
-    total = 0
+    epochs = 100000
+    wins = [deque(maxlen=100)] * BATCH_SIZE
+    for t in range(BATCH_SIZE):
+        wins[t].append(1)
 
-    while (batch_no < epochs):
+    for epoch in range(epochs):
 
-        # simple state action reward loop and writes the actions to buffer
-        mask = 1 - driver.env.fog
-        action, lp = driver.get_action(state, mask)
-        next_state, terminal, reward, _ = driver.step(action)
-        driver.buffer.push(state.flatten(), action, lp, mask.flatten(), reward, next_state.flatten(),
-                           (1 - driver.env.fog).flatten(), terminal)
-        state = next_state
-        count += 1
-        running_reward += reward
+        mask = torch.tensor([1 - driver.envs[k].fog for k in range(BATCH_SIZE)])
+        state = torch.tensor([driver.envs[k].state for k in range(BATCH_SIZE)])
+        action, lp = driver.get_action_tensor(state, mask)
+        next_state, terminal, reward, _ = driver.step_tensor(action)
 
-        # Used for calculating winrate for each batch
-        if (terminal):
-            if (reward == 1):
-                wins += 1
-            driver.env.reset()
-            state = driver.env.state
-            mask = driver.env.fog
-            total += 1
+        for done_id in range(BATCH_SIZE) :
+            if terminal[done_id]:
+                driver.envs[done_id].reset()
 
-        if count == driver.batch_size:
+        policy_loss, val_loss = driver.Loss(state, lp, reward, next_state, terminal)
 
-            policy_loss, val_loss = driver.Loss()
+        for t in range(BATCH_SIZE):
+            if terminal[t].item():
+                if reward[t].item() > 0.5:
+                    wins[t].append(1)
+                else:
+                    wins[t].append(0)
+        print(reward)
+        driver.save_logs(epoch, reward.float().mean().item(), policy_loss, val_loss, np.mean([np.mean(win) for win in wins]))
 
-            # Calculates metrics
-            batch_no += 1
-            avg_reward = running_reward / driver.batch_size
-            wins = wins * 100 / total
-            driver.save_logs(batch_no, avg_reward, policy_loss, val_loss, wins)
-
-            # Resets metrics for next batch calculation
-            running_reward = 0
-            count = 0
-            wins = 0
-            total = 0
-
-            # Saves the model details to "./pre-trained" if 1000 batches have been processed
-            if (batch_no % save_every == 0):
-                driver.save_checkpoints(batch_no)
+        # Saves the model details to "./pre-trained" if 1000 batches have been processed
+        if (epoch % save_every == 0):
+            driver.save_checkpoints(epoch)
 
 
 if __name__ == "__main__":
