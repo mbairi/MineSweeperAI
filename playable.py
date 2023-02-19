@@ -42,7 +42,7 @@ def main():
                     play.env.reset()
                     play.renderer.state = play.env.state
                     play.renderer.draw()
-                print(play.env.grid)
+            print(play.env.grid)
 
 
 main()

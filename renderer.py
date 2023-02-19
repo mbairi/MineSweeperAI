@@ -48,8 +48,10 @@ class Render():
         for column in range(0, self.WINDOW_WIDTH, self.blockSize):
             i = 0
             for row in range(0, self.WINDOW_HEIGHT, self.blockSize):
-                if (self.state[i][j] == -1):
+                if (self.state[i][j] <= -1):
                     pygame.draw.rect(self.SCREEN, self.GRAY_SHADES[0], [column, row, self.blockSize, self.blockSize])
+                # if (self.state[i][j] == -2):
+                #     pygame.draw.rect(self.SCREEN, (0, 0, 255), [column, row, self.blockSize, self.blockSize])
                 if (self.state[i][j] == 0):
                     pygame.draw.rect(self.SCREEN, self.GRAY_SHADES[2], [column, row, self.blockSize, self.blockSize])
                 elif (self.state[i][j] > 0):
