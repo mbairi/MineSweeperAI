@@ -88,7 +88,7 @@ class MineSweeper:
                     self.grid[i][j] += 1
 
     # Game logic for choosing a point in grid
-    def choose(self, i, j):
+    def choose(self, i, j, auto_labeling=False):
         # plant bombs after the first choose if rule is not default
         if not self.bomb_planted:
             if self.rule == 'winxp':
@@ -96,6 +96,7 @@ class MineSweeper:
                 candidates.remove(self._grid2flatten(i, j))
             else:  # == 'win7'
                 candidates = list(range(self.box_count))
+                candidates.remove(self._grid2flatten(i, j))
                 for row, col in self._find_neighbors(i, j):
                     candidates.remove(self._grid2flatten(row, col))
 
@@ -112,7 +113,8 @@ class MineSweeper:
             self._update_state()
             if self.uncovered_count == self.box_count - self.bomb_no:
                 return self.state, True, 1
-            self.auto_labeling()
+            if auto_labeling:
+                self._auto_labeling()
             return self.state, False, 0.5
 
         elif self.grid[i][j] > 0:
@@ -121,21 +123,23 @@ class MineSweeper:
             self._update_state()
             if self.uncovered_count == self.box_count - self.bomb_no:
                 return self.state, True, 1
-            self.auto_labeling()
+            if auto_labeling:
+                self._auto_labeling()
             return self.state, False, 0.5
 
         else:
             return self.state, True, -1
         
-    def auto_labeling(self):
+    def _auto_labeling(self):
         for i in range(self.grid_height):
             for j in range(self.grid_width):
                 if self.state[i][j] > 0:
                     neighbors = self._find_neighbors(i, j)
                     invisible_nbr_no = [self.state[ni, nj] < 0 for ni, nj in neighbors].count(True)
                     if self.state[i][j] == invisible_nbr_no:
-                        for ni, nj in neighbors:
-                            self.state[ni][nj] = -2
+                        for (ni, nj) in neighbors:
+                            if self.state[ni][nj] == -1:
+                                self.state[ni][nj] = -2
 
 # THIS is the slightly more complex logic with Breadth First Search
 # Used to unfog the grid if zeros are there in nearby region and if the chosen grid is a zero cell
