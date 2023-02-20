@@ -4,6 +4,34 @@ This project was created from scratch using Python,Numpy to create the game logi
 
 # Changelog
 
+### - 02.20 by Xiao
+
+- **Auto Flag added**
+
+`flagged` state is now added, with value `-2` in the `state` array of `MineSweeper`.  
+
+By setting `auto_flag=True` every time calling `choose()` function of `MineSweeper`, cells containing bomb with a 100% probability are automatically flagged and marked in purple. 
+
+**Attention!** You may need to deal with the new possible value `-2` before feeding the `state` array to pretrained models. 
+
+Below is an example on medium difficulty grid, after the very first random click: 
+
+![auto_flag demo](./Example/auto_flag_demo.png)
+
+- **Auto Play added**
+
+Now the MineSweeper is able to play automatically by clicking on masked cells with a 0% probability of containing a bomb and *repeat until* no cell satisfies this condition. 
+
+Just setting `auto_play=True` every time calling `choose()` function of `MineSweeper`.
+
+Below is an example on medium difficulty grid, after the very first random click: 
+
+![auto_play demo](./Example/auto_play_demo.png)
+
+**Try it out and have fun!** Just run `playable.py` to discover the auto-play functionality.
+
+Reminder: both `auto_flag` and `auto_play` take slightly more time to compute compare to the original `choose` function. 
+
 ### - 02.18 by Xiao
 
 **More realistic rule sets are now added!** 
@@ -13,7 +41,7 @@ Instead of stupid initialization of bomb locations while reset, we've added two 
 - Windows XP rule set: the bomb is never located at the square of the first click (rules out 1 square)
 - Windows 7 rule set: the bomb is never located at nor around the square of the first click (rules out 9 squares) 
 
-**Try it out and have fun!** Just run `playable.py` to discover the Windows 7 rule set.
+
 
 In order to use new rule sets in your code, simply add one more parameter `rule` every time creating new instances of the `MinsSweeper()` class from `game.py`. 
 
