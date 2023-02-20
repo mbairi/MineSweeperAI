@@ -20,15 +20,17 @@ Below is an example on medium difficulty grid, after the very first random click
 
 - **Auto Play added**
 
-Now the MineSweeper is able to play automatically by clicking on masked cells with a 0% probability of containing a bomb and *repeat until* no cell satisfies this condition. 
+Now the MineSweeper is able to play automatically by choosing one masked cell with a 0% probability of containing a bomb and *repeat until* no more cell satisfies this condition. 
 
-Just setting `auto_play=True` every time calling `choose()` function of `MineSweeper`.
+Just set `auto_play=True` every time calling `choose()` function of `MineSweeper`.
 
 Below is an example on medium difficulty grid, after the very first random click: 
 
 ![auto_play demo](./Example/auto_play_demo.png)
 
 **Try it out and have fun!** Just run `playable.py` to discover the auto-play functionality.
+
+Example of usage: `next_state, terminal, reward = env.choose(i, j, auto_flag=True, auto_play=True)`
 
 Reminder: both `auto_flag` and `auto_play` take slightly more time to compute compare to the original `choose` function. 
 
@@ -41,15 +43,11 @@ Instead of stupid initialization of bomb locations while reset, we've added two 
 - Windows XP rule set: the bomb is never located at the square of the first click (rules out 1 square)
 - Windows 7 rule set: the bomb is never located at nor around the square of the first click (rules out 9 squares) 
 
-
-
 In order to use new rule sets in your code, simply add one more parameter `rule` every time creating new instances of the `MinsSweeper()` class from `game.py`. 
 
 Possible keywords are `default` (stupid initialization), `winxp` (Windows XP rule set) and `win7` (Windows 7 rule set). 
 
 For example, `env = MineSweeper(width=10, height=10, bomb_no=9, rule='win7')`.
-
-We recommend you not to use `default` any longer with the benefit of being able to compare your performance with the theoretical baseline below. 
 
 |difficulty|Windows XP rule|Windows 7 rule|
 |---|---|---|
