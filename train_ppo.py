@@ -85,7 +85,7 @@ class Driver():
         self.epsilon_decay = 0.90
         self.reward_threshold = 0.12
         self.reward_step = 0.01
-        self.batch_size = 4096
+        self.batch_size = 1024
         self.tau = 5e-5
         self.policy_clip=0.2
         self.mse=nn.MSELoss()
@@ -157,17 +157,17 @@ class Driver():
         with torch.no_grad():
             target_v = reward + self.gamma * self.critic(next_state)
 
-        # advantage=np.zeros(len(reward),dtype=np.float32)
-        # for t in range(len(reward)-1):
-        #     discount=1
-        #     a_t=0
-        #     for k in range(t, len(reward)-1):
-        #         a_t+=discount*(reward[k].item()+self.gamma*val[k+1].item()*(1-int(done[k].item()))-val[k].item())
-        #         discount*=self.gamma*self.gae_lambda
-        #     advantage[t]=a_t
-        # advantage=torch.tensor(advantage).to(device)
+        advantage=np.zeros(len(reward),dtype=np.float32)
+        for t in range(len(reward)-1):
+            discount=1
+            a_t=0
+            for k in range(t, len(reward)-1):
+                a_t+=discount*(reward[k].item()+self.gamma*val[k+1].item()*(1-int(done[k].item()))-val[k].item())
+                discount*=self.gamma*self.gae_lambda
+            advantage[t]=a_t
+        advantage=torch.tensor(advantage).to(device)
 
-        advantage = (target_v - self.critic(state)).detach()
+        # advantage = (target_v - self.critic(state)).detach()
 
         #SGD
         dist=self.actor(state,mask)
@@ -181,7 +181,7 @@ class Driver():
         
         actor_loss = -torch.min(weighted_probs, weighted_clipped_probs).mean()
         returns = advantage + val
-        critic_loss = self.mse(returns,critic_value)
+        critic_loss = (returns-critic_value)**2
         critic_loss = critic_loss.mean()
 
         total_loss=actor_loss+0.5*critic_loss
@@ -234,8 +234,8 @@ def main():
 
     driver = Driver(6,6,6,False)
     state = driver.env.state
-    epochs = 10000
-    save_every = 2000
+    epochs = 20000*4
+    save_every = 1000*4
     count = 0
     running_reward = 0 
     batch_no = 0
