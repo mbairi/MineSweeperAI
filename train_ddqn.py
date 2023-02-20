@@ -189,7 +189,7 @@ class Driver():
 def main():
     driver = Driver(6, 6, 6, False)
     state = driver.env.state
-    epochs = 10000
+    epochs = 20000
     save_every = 2000
     count = 0
     running_reward = 0
