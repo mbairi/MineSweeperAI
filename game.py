@@ -10,7 +10,7 @@ class MineSweeper:
 
         # grid contains the values of entire map: [0 = nothing, -1 = bomb, 1,2,3... = hints of bombs nearby]
         # fog contains the things that are visible to the player/system: [0 = not visible, 1 = visible]
-        # state is the same as grid but all invisible squares = -1, located bombs = -2
+        # state is the same as grid but all invisible squares = -1, flagged bombs = -2
         # grid_width, grid_height, bomb_no are self-explanatory
         # bomb_locs contains *flattened* locations of the bombs in the grid
         # rule can be either 'default' (completely random bombs), 'winxp' (no bomb at the first click) or 'win7' (no
@@ -88,7 +88,7 @@ class MineSweeper:
                     self.grid[i][j] += 1
 
     # Game logic for choosing a point in grid
-    def choose(self, i, j, auto_labeling=False):
+    def choose(self, i, j, auto_flag=False, auto_play=False):
         # plant bombs after the first choose if rule is not default
         if not self.bomb_planted:
             if self.rule == 'winxp':
@@ -107,30 +107,26 @@ class MineSweeper:
             self.uncovered_count = 0
             self.bomb_planted = True
 
-        if self.grid[i][j] == 0:
-            unfog_zeros(self.grid, self.fog, i, j)
-            self.uncovered_count = count_nonzero(self.fog)
-            self._update_state()
-            if self.uncovered_count == self.box_count - self.bomb_no:
-                return self.state, True, 1
-            if auto_labeling:
-                self._auto_labeling()
-            return self.state, False, 0.5
-
-        elif self.grid[i][j] > 0:
-            self.fog[i][j] = 1
-            self.uncovered_count = count_nonzero(self.fog)
-            self._update_state()
-            if self.uncovered_count == self.box_count - self.bomb_no:
-                return self.state, True, 1
-            if auto_labeling:
-                self._auto_labeling()
-            return self.state, False, 0.5
-
-        else:
+        if self.grid[i][j] < 0:
             return self.state, True, -1
-        
-    def _auto_labeling(self):
+        elif self.grid[i][j] == 0:
+            unfog_zeros(self.grid, self.fog, i, j)
+        else:
+            self.fog[i][j] = 1
+
+        self._update_state()
+        if auto_play:
+            self._auto_play()
+        if auto_flag:
+            self._auto_flag()
+
+        self.uncovered_count = count_nonzero(self.fog)
+        if self.uncovered_count == self.box_count - self.bomb_no:
+            return self.state, True, 1
+        else:
+            return self.state, False, 0.5
+
+    def _auto_flag(self):
         for i in range(self.grid_height):
             for j in range(self.grid_width):
                 if self.state[i][j] > 0:
@@ -140,6 +136,22 @@ class MineSweeper:
                         for (ni, nj) in neighbors:
                             if self.state[ni][nj] == -1:
                                 self.state[ni][nj] = -2
+
+    def _auto_play(self):
+        self._auto_flag()
+        for i in range(self.grid_height):
+            for j in range(self.grid_width):
+                if self.state[i][j] > 0:
+                    neighbors = self._find_neighbors(i, j)
+                    flagged_nbr_no = [self.state[ni, nj] for ni, nj in neighbors].count(-2)
+                    if self.state[i][j] == flagged_nbr_no:
+                        for (ni, nj) in neighbors:
+                            if self.state[ni][nj] == -1:
+                                print("AUTOPLAY", ni, nj)
+                                self.choose(ni, nj, auto_flag=True, auto_play=True)
+                                return
+        return
+
 
 # THIS is the slightly more complex logic with Breadth First Search
 # Used to unfog the grid if zeros are there in nearby region and if the chosen grid is a zero cell
@@ -160,16 +172,18 @@ def unfog_zeros(grid, fog, i, j):
 
 def speed_test(iterations):
     start = time.perf_counter()
+    win = 0
     for i in range(iterations):
-        game = MineSweeper(10, 10, 10)
-        game.choose(0, 0)
+        game = MineSweeper(9, 9, 10, 'win7')
+        _, terminal, _ = game.choose(1, 1, auto_flag=True, auto_play=True)
+        if terminal:
+            win += 1
     end = time.perf_counter() - start
-    return end
-
-# iterations = 2500
-# print("Time taken for "+str(iterations)+" steps is "+str(speed_test(iterations)))
+    return end, iterations - win
 
 
-# if __name__ == "__main__":
-#     env = MineSweeper(9, 9, 10, 'win7')
-#     print(env._find_neighbors(0, 0))
+if __name__ == "__main__":
+    iterations = 2500
+    t, intervention = speed_test(iterations)
+    print("Time taken for "+str(iterations)+" steps is "+str(t))
+    print("With "+str(intervention)+"/"+str(iterations)+" games requested human or model intervention.")
