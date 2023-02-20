@@ -14,7 +14,7 @@ By setting `auto_flag=True` every time calling `choose()` function of `MineSweep
 
 **Attention!** You may need to deal with the new possible value `-2` before feeding the `state` array to pretrained models. 
 
-Below is an example on medium difficulty grid, after the very first random click: 
+Below is an example on medium difficulty grid, after only one click:  
 
 ![auto_flag demo](./Example/auto_flag_demo.png)
 
@@ -24,7 +24,7 @@ Now the MineSweeper is able to play automatically by choosing one masked cell wi
 
 Just set `auto_play=True` every time calling `choose()` function of `MineSweeper`.
 
-Below is an example on medium difficulty grid, after the very first random click: 
+Below is an example on medium difficulty grid, after only one click: 
 
 ![auto_play demo](./Example/auto_play_demo.png)
 
