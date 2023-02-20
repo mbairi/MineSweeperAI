@@ -4,6 +4,16 @@ This project was created from scratch using Python,Numpy to create the game logi
 
 # Changelog
 
+### - 02.20 by Xia
+
+- **Definite player added in tester**
+
+`use_definite` state is now added when creating the win tester to show the performance.  
+
+By setting `use_definite=True` the agent will choose a grid that is sure not to contain a miner as the action. Otherwise, the RL agent will be used to generate the action. 
+
+It seems that in most cases, better results can be obtained by using a deterministic approach. 
+
 ### - 02.20 by Xiao
 
 - **Auto Flag added**
