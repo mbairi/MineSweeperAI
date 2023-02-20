@@ -325,5 +325,8 @@ def slow_tester(model_type):
 def main():
     model_type="DDQN"
     win_tester(1000,model_type,use_definite=False)
+
+    win_tester(1000,model_type,use_definite=True)
+
     # slow_tester(model_type)
 main()
